@@ -1,0 +1,155 @@
+# Howl PM CLI
+
+Purpose: define the product-facing package command intended to run inside Howl
+mobile shells.
+
+## Product Role
+
+`howl-pm` is the Howl-owned package UX for mobile products.
+
+It is not a replacement for every low-level package tool. It is the stable
+front door that Howl users should see first.
+
+The backend may use:
+
+- provider manifests
+- prefix archives
+- package indexes
+- future Howl-owned feeds
+
+The CLI surface should stay Howl-shaped:
+
+- clear package/group names
+- honest provider provenance
+- explicit install state
+- predictable recovery output
+
+## MVP
+
+The first MVP is deliberately narrow.
+
+Commands:
+
+- `howl-pm doctor`
+- `howl-pm list-available`
+- `howl-pm install dev-baseline --prefix <path>`
+
+Initial bootstrap profile:
+
+- `dev-baseline`
+
+Current `dev-baseline` means:
+
+- Bash
+- Neovim
+- Git
+- ripgrep
+- htop
+- gotop
+- their pinned provider dependency closure
+
+This is current bringup naming, not long-term product semantics.
+
+The intended product direction is:
+
+- APK/app releases can point at a compatible bootstrap or recommended profile
+- installed packages later evolve under `howl-pm`
+- default shell may initially be Bash, but shell choice should remain
+  configurable userland policy rather than APK identity
+- future naming should move from `dev-baseline` toward product language such as
+  `recommended`, `terminal-baseline`, or similar once the onboarding/install
+  model is mature enough
+
+## Android catalog mode
+
+When the Howl Android host runs `howl-pm`, it sets `ZIDE_PM_HOST_PLATFORM=android`.
+In that mode, manifests may advertise additional `android-test-binary` artifacts;
+`howl-pm list-available` and `howl-pm install <name>` treat those as first-class
+packages alongside `dev-baseline`. Without this variable (typical developer
+machine runs), the test-binary catalog stays hidden so host workflows do not
+accidentally claim Android-only install semantics.
+
+Published Android dev snapshot manifests include `zide-android-catalog-smoke`
+(`android-test-binary`) so devices can validate pull/install without ad-hoc URLs.
+
+`howl-pm doctor` prints `zide_pm_host_platform` so operators can see which mode
+is active.
+
+## Android networking (MP-A10 / APX-B18)
+
+The shipped `howl-pm` binary is built with `CGO_ENABLED=0`. On some Android app
+sandboxes, `/etc/resolv.conf` advertises a loopback nameserver (for example
+`[::1]:53`) that the Go resolver cannot reach from the APK process, so manifest
+and artifact downloads fail even when system `ping github.com` works.
+
+On `GOOS=android`, `howl-pm` installs a `net.DefaultResolver` dial hook that
+ignores that loopback entry, prefers `getprop net.dns1` (then `net.dns2`… from
+`/system/bin/getprop` when present), and otherwise falls back to `8.8.8.8:53`.
+This is automatic bootstrap DNS for HTTPS fetches—operators should not need to
+patch resolver files or rely on root.
+
+## Boundary
+
+`howl-pm` consumes manifests and prefix archives. It does not parse `.deb`
+payloads in the product path.
+
+`howl-pm-admin` commands may still snapshot providers and materialize archives.
+That work is backend/package-authority infrastructure, not product CLI surface.
+
+The user-facing CLI should not expose Termux as the product. It can report
+`provider=termux-main` as provenance while keeping the command model Howl-owned.
+
+## Android First
+
+The Android MVP installs an `android-prefix-archive` rooted at `usr/` into the
+requested prefix.
+
+That archive should currently be read as a bootstrap/recommended profile
+artifact, not as a forever lock on package versions for the life of the APK.
+
+For the current app:
+
+```bash
+howl-pm install dev-baseline --prefix /data/data/uk.laurencegouws.zide/files/usr
+```
+
+The default manifest points at the current Android dev snapshot prerelease. Local
+manifests are supported for development:
+
+```bash
+howl-pm install dev-baseline \
+  --manifest ./android-dev-prefix.release.manifest.json \
+  --prefix ./tmp/usr
+```
+
+Private GitHub release URLs use `ZIDE_PM_GITHUB_TOKEN`, `GITHUB_TOKEN`,
+`GH_TOKEN`, or `gh auth token` when available.
+
+Dev prefix archives include:
+
+- `usr/bin/howl-pm`
+- `usr/.howl-pm-install.json`
+
+That install stamp lets the on-device shell run:
+
+```bash
+howl-pm doctor
+howl-pm list-available
+```
+
+without requiring private GitHub release access from the phone. If manifest
+loading fails, those read the installed state from `$PREFIX`.
+
+## Not Yet
+
+Do not claim these are done:
+
+- arbitrary package install
+- dependency mutation on-device
+- upgrade/remove semantics
+- product-clean provider policy
+- iOS execution/install behavior
+- stable long-term product naming for bootstrap/recommended profiles
+
+Those need separate tickets after the first CLI shape is validated in the Howl
+Android shell.
