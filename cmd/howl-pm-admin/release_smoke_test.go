@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/howl-editor/howl-pm/internal/manifest"
+	"github.com/howl/howl-pm/internal/manifest"
 )
 
 func TestMaterializeCatalogSmokeWritesDist(t *testing.T) {

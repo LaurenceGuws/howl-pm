@@ -16,7 +16,7 @@ func androidProductCandidateProbe(args []string) error {
 	manifestPath := fs.String("manifest", "dist/android-dev.manifest.json", "input MP-A1 Android dev manifest")
 	cacheDir := fs.String("cache-dir", ".cache/android/packages", "downloaded package cache directory")
 	auditOut := fs.String("audit-out", "dist/mp-a6-product-candidate.audit.json", "written on fail (and on pass); MP-A6 evidence path")
-	zidePMBin := fs.String("zide-pm-bin", "", "optional Android zide-pm binary to include as usr/bin/zide-pm")
+	pmBin := fs.String("pm-bin", "", "optional Android zide-pm binary to include as usr/bin/zide-pm")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -40,8 +40,8 @@ func androidProductCandidateProbe(args []string) error {
 		"-audit-out", *auditOut,
 		"-hardcoded-policy", "fail",
 	}
-	if *zidePMBin != "" {
-		probeArgs = append(probeArgs, "-zide-pm-bin", *zidePMBin)
+	if *pmBin != "" {
+		probeArgs = append(probeArgs, "-pm-bin", *pmBin)
 	}
 
 	fmt.Printf("mp_a6_product_candidate_probe manifest=%s hardcoded_termux_policy=fail\n", *manifestPath)

@@ -33,7 +33,7 @@ Progress reporting contract (mandatory):
   - `VALIDATION`
   - `Blocked by Archtect review needed: true|false`
 - `LABELS` must include:
-  - `Lane: howl_pm`
+  - `Lane: pm`
   - `Batch: <MP-*>`
   - `Gate: in_progress|super_gate`
   - `Focus: <one-line>`

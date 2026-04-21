@@ -1,5 +1,5 @@
-// Package howlpm implements the user-facing Howl PM mobile package CLI surface.
-package howlpm
+// Package pm implements the user-facing Howl PM mobile package CLI surface.
+package pm
 
 import (
 	"archive/tar"
@@ -21,11 +21,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/howl-editor/howl-pm/internal/manifest"
+	"github.com/howl/howl-pm/internal/manifest"
 )
 
 const (
-	DefaultAndroidDevManifestURL = "https://github.com/howl-editor/howl-pm/releases/download/android-dev-2026.04.18.182005/android-dev-prefix.release.manifest.json"
+	DefaultAndroidDevManifestURL = "https://github.com/howl/howl-pm/releases/download/android-dev-2026.04.18.182005/android-dev-prefix.release.manifest.json"
 	DevBaselinePackage           = "dev-baseline"
 )
 

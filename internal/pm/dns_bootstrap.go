@@ -1,4 +1,4 @@
-package howlpm
+package pm
 
 import (
 	"net"

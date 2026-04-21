@@ -1,4 +1,4 @@
-module github.com/howl-editor/howl-pm
+module github.com/howl/howl-pm
 
 go 1.26.2
 

@@ -15,7 +15,7 @@ Required report headers:
 
 Required `LABELS` fields:
 
-- `Lane: howl_pm`
+- `Lane: pm`
 - `Batch: <MP-*>`
 - `Gate: in_progress|super_gate`
 - `Focus: <one-line>`

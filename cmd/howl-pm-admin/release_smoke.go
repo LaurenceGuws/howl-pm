@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/howl-editor/howl-pm/internal/manifest"
+	"github.com/howl/howl-pm/internal/manifest"
 )
 
 const (

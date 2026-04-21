@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/howl-editor/howl-pm/internal/howlpm"
+	"github.com/howl/howl-pm/internal/pm"
 )
 
 const version = "0.1.0-dev"
@@ -73,12 +73,12 @@ manifest contract.`)
 
 func doctor(args []string) error {
 	fs := commonFlagSet("doctor")
-	manifestPath := fs.String("manifest", howlpm.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
+	manifestPath := fs.String("manifest", pm.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
 	prefix := fs.String("prefix", defaultPrefix(), "installed prefix used for offline doctor fallback")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	fmt.Printf("zide_pm_host_platform=%s\n", howlpm.CurrentHostPlatform())
+	fmt.Printf("zide_pm_host_platform=%s\n", pm.CurrentHostPlatform())
 	source, err := loadSource(*manifestPath)
 	if err != nil {
 		return doctorInstalled(*prefix, err)
@@ -86,7 +86,7 @@ func doctor(args []string) error {
 	fmt.Printf("manifest=%s\n", source.Location)
 	fmt.Printf("platform=%s\n", source.Document.Platform)
 	fmt.Printf("channel=%s\n", source.Document.Channel)
-	if artifact, err := howlpm.AndroidPrefixArtifact(source); err == nil {
+	if artifact, err := pm.AndroidPrefixArtifact(source); err == nil {
 		fmt.Printf("artifact=%s\n", artifact.Artifact.Name)
 		fmt.Printf("version=%s\n", artifact.Artifact.Version)
 		fmt.Printf("provider=%s\n", artifact.Artifact.Metadata["provider"])
@@ -100,7 +100,7 @@ func doctor(args []string) error {
 
 func listAvailable(args []string) error {
 	fs := commonFlagSet("list-available")
-	manifestPath := fs.String("manifest", howlpm.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
+	manifestPath := fs.String("manifest", pm.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
 	prefix := fs.String("prefix", defaultPrefix(), "installed prefix used for offline list fallback")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -109,7 +109,7 @@ func listAvailable(args []string) error {
 	if err != nil {
 		return listInstalled(*prefix, err)
 	}
-	for _, name := range howlpm.AvailablePackages(source) {
+	for _, name := range pm.AvailablePackages(source) {
 		fmt.Println(name)
 	}
 	return nil
@@ -117,9 +117,9 @@ func listAvailable(args []string) error {
 
 func install(args []string) error {
 	fs := commonFlagSet("install")
-	manifestPath := fs.String("manifest", howlpm.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
+	manifestPath := fs.String("manifest", pm.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
 	prefix := fs.String("prefix", "", "installation prefix, required")
-	cacheDir := fs.String("cache-dir", howlpm.DefaultCacheDir(), "download/cache directory")
+	cacheDir := fs.String("cache-dir", pm.DefaultCacheDir(), "download/cache directory")
 	args = reorderFlags(args, map[string]bool{
 		"manifest":  true,
 		"prefix":    true,
@@ -142,11 +142,11 @@ func install(args []string) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
-	var result howlpm.InstallResult
-	if pkg == howlpm.DevBaselinePackage {
-		result, err = howlpm.InstallDevBaseline(ctx, source, *prefix, *cacheDir)
+	var result pm.InstallResult
+	if pkg == pm.DevBaselinePackage {
+		result, err = pm.InstallDevBaseline(ctx, source, *prefix, *cacheDir)
 	} else {
-		result, err = howlpm.InstallAndroidTestBinary(ctx, source, pkg, *prefix, *cacheDir)
+		result, err = pm.InstallAndroidTestBinary(ctx, source, pkg, *prefix, *cacheDir)
 	}
 	if err != nil {
 		return err
@@ -166,11 +166,11 @@ func commonFlagSet(name string) *flag.FlagSet {
 }
 
 func doctorInstalled(prefix string, manifestErr error) error {
-	stamp, err := howlpm.LoadInstallStamp(prefix)
+	stamp, err := pm.LoadInstallStamp(prefix)
 	if err != nil {
 		return fmt.Errorf("manifest unavailable (%v) and no install stamp at prefix %q: %w", manifestErr, prefix, err)
 	}
-	fmt.Printf("zide_pm_host_platform=%s\n", howlpm.CurrentHostPlatform())
+	fmt.Printf("zide_pm_host_platform=%s\n", pm.CurrentHostPlatform())
 	fmt.Printf("manifest=%s\n", stamp.Manifest)
 	fmt.Printf("installed=true\n")
 	fmt.Printf("package=%s\n", stamp.Package)
@@ -185,7 +185,7 @@ func doctorInstalled(prefix string, manifestErr error) error {
 }
 
 func listInstalled(prefix string, manifestErr error) error {
-	stamp, err := howlpm.LoadInstallStamp(prefix)
+	stamp, err := pm.LoadInstallStamp(prefix)
 	if err != nil {
 		return fmt.Errorf("manifest unavailable (%v) and no install stamp at prefix %q: %w", manifestErr, prefix, err)
 	}
@@ -225,8 +225,8 @@ func reorderFlags(args []string, takesValue map[string]bool) []string {
 	return append(flags, positionals...)
 }
 
-func loadSource(location string) (howlpm.Source, error) {
+func loadSource(location string) (pm.Source, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
-	return howlpm.LoadSource(ctx, location)
+	return pm.LoadSource(ctx, location)
 }

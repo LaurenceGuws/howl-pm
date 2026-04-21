@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/howl-editor/howl-pm/internal/androidprefix"
+	"github.com/howl/howl-pm/internal/androidprefix"
 )
 
 func TestNewAndroidPrefixManifestRuntimeSupportMetadataMatchesAuthority(t *testing.T) {

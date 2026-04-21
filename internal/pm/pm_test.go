@@ -1,4 +1,4 @@
-package howlpm
+package pm
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/howl-editor/howl-pm/internal/manifest"
+	"github.com/howl/howl-pm/internal/manifest"
 )
 
 func TestAvailablePackagesHidesTestBinariesWithoutAndroidHost(t *testing.T) {

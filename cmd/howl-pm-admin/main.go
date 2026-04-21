@@ -16,9 +16,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/howl-editor/howl-pm/internal/androidprefix"
-	"github.com/howl-editor/howl-pm/internal/androidrepo"
-	"github.com/howl-editor/howl-pm/internal/manifest"
+	"github.com/howl/howl-pm/internal/androidprefix"
+	"github.com/howl/howl-pm/internal/androidrepo"
+	"github.com/howl/howl-pm/internal/manifest"
 )
 
 const version = "0.1.0-dev"
@@ -142,7 +142,7 @@ func androidDevRelease(args []string) error {
 	title := fs.String("title", "", "release title, defaults to tag")
 	refresh := fs.Bool("refresh", false, "refresh provider package index before release")
 	dryRun := fs.Bool("dry-run", false, "generate assets and print release command without publishing")
-	repo := fs.String("repo", "howl-editor/howl-pm", "GitHub repository for release publishing")
+	repo := fs.String("repo", "howl/howl-pm", "GitHub repository for release publishing")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func androidDevRelease(args []string) error {
 	if err := androidDevManifest(manifestArgs); err != nil {
 		return err
 	}
-	if err := buildAndroidHowlPM("dist/howl-pm-android-arm64"); err != nil {
+	if err := buildAndroidPM("dist/howl-pm-android-arm64"); err != nil {
 		return err
 	}
 	if err := androidPrefixArchive([]string{
@@ -250,7 +250,7 @@ func androidPrefixArchive(args []string) error {
 	outManifest := fs.String("out-manifest", "dist/android-dev-prefix.manifest.json", "output archive manifest path")
 	auditOut := fs.String("audit-out", "dist/howl-android-dev-prefix.audit.json", "output archive audit path")
 	hardcodedPolicy := fs.String("hardcoded-policy", "fail", "hardcoded com.termux policy: audit or fail")
-	howlPMBin := fs.String("howl-pm-bin", "", "optional Android howl-pm binary to include as usr/bin/howl-pm")
+	pmBin := fs.String("howl-pm-bin", "", "optional Android howl-pm binary to include as usr/bin/howl-pm")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -312,8 +312,8 @@ func androidPrefixArchive(args []string) error {
 			audit.HardcodedTermuxHits = append(audit.HardcodedTermuxHits, artifact.Name+":"+hit)
 		}
 	}
-	if *howlPMBin != "" {
-		if err := installHowlPMBinary(stagingRoot, *howlPMBin); err != nil {
+	if *pmBin != "" {
+		if err := installPMBinary(stagingRoot, *pmBin); err != nil {
 			return err
 		}
 	}
@@ -322,7 +322,7 @@ func androidPrefixArchive(args []string) error {
 		return err
 	}
 	audit.RemovedTermuxBinaries = removedTermuxBinaries
-	if err := writeBundledHowlPMInstallStamp(stagingRoot, *manifestPath, sourceHash, audit); err != nil {
+	if err := writeBundledPMInstallStamp(stagingRoot, *manifestPath, sourceHash, audit); err != nil {
 		return err
 	}
 	if len(audit.HardcodedTermuxHits) > 0 && *hardcodedPolicy == "fail" {
@@ -572,7 +572,7 @@ func verifyFile(path string, wantSHA256 string, wantSize int64) (bool, error) {
 	return fmt.Sprintf("%x", hash.Sum(nil)) == wantSHA256, nil
 }
 
-func buildAndroidHowlPM(outputPath string) error {
+func buildAndroidPM(outputPath string) error {
 	if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
 		return err
 	}
@@ -587,7 +587,7 @@ func buildAndroidHowlPM(outputPath string) error {
 	return os.Chmod(outputPath, 0o755)
 }
 
-func installHowlPMBinary(stagingRoot string, sourcePath string) error {
+func installPMBinary(stagingRoot string, sourcePath string) error {
 	info, err := os.Stat(sourcePath)
 	if err != nil {
 		return err
@@ -615,7 +615,7 @@ func installHowlPMBinary(stagingRoot string, sourcePath string) error {
 	return destination.Close()
 }
 
-func writeBundledHowlPMInstallStamp(stagingRoot string, manifestPath string, sourceManifestSHA256 string, audit prefixAudit) error {
+func writeBundledPMInstallStamp(stagingRoot string, manifestPath string, sourceManifestSHA256 string, audit prefixAudit) error {
 	stamp := map[string]any{
 		"installed_at":            "archive-build",
 		"package":                 "dev-baseline",

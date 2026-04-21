@@ -18,7 +18,7 @@ import (
 
 const (
 	TermuxUSRPrefix = "data/data/com.termux/files/usr/"
-	ZideUSRPrefix   = "usr/"
+	AppUSRPrefix   = "usr/"
 	AppPackageName  = "uk.laurencegouws.zide"
 	AppUSRPath      = "/data/data/" + AppPackageName + "/files/usr"
 	RuntimeAliasDir = "/data/user/0/" + AppPackageName + "/t"
@@ -236,14 +236,14 @@ func usrRelativePath(raw string) (string, bool) {
 		return "", false
 	}
 	if name == strings.TrimSuffix(TermuxUSRPrefix, "/") {
-		return strings.TrimSuffix(ZideUSRPrefix, "/"), true
+		return strings.TrimSuffix(AppUSRPrefix, "/"), true
 	}
 	if strings.HasPrefix(name, TermuxUSRPrefix) {
 		rest := strings.TrimPrefix(name, TermuxUSRPrefix)
 		if rest == "" {
-			return strings.TrimSuffix(ZideUSRPrefix, "/"), true
+			return strings.TrimSuffix(AppUSRPrefix, "/"), true
 		}
-		return ZideUSRPrefix + rest, true
+		return AppUSRPrefix + rest, true
 	}
 	return "", false
 }
@@ -371,7 +371,7 @@ func replaceFixedWidthCString(payload []byte, old []byte, new []byte, cStringOnl
 func rewriteTermuxLink(relative string, linkname string) (string, bool) {
 	const oldAbsolute = "/data/data/com.termux/files/usr/"
 	if strings.HasPrefix(linkname, oldAbsolute) {
-		target := ZideUSRPrefix + strings.TrimPrefix(linkname, oldAbsolute)
+		target := AppUSRPrefix + strings.TrimPrefix(linkname, oldAbsolute)
 		rel, err := filepath.Rel(filepath.Dir(relative), target)
 		if err != nil {
 			return linkname, false
@@ -379,7 +379,7 @@ func rewriteTermuxLink(relative string, linkname string) (string, bool) {
 		return filepath.ToSlash(rel), true
 	}
 	if strings.HasPrefix(linkname, TermuxUSRPrefix) {
-		target := ZideUSRPrefix + strings.TrimPrefix(linkname, TermuxUSRPrefix)
+		target := AppUSRPrefix + strings.TrimPrefix(linkname, TermuxUSRPrefix)
 		rel, err := filepath.Rel(filepath.Dir(relative), target)
 		if err != nil {
 			return linkname, false

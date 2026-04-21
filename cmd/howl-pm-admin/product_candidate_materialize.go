@@ -20,7 +20,7 @@ func androidProductCandidateMaterialize(args []string) error {
 	out := fs.String("out", filepath.Join(productCandidateOutputDir, "zide-android-prefix.tar.gz"), "output prefix archive path")
 	outManifest := fs.String("out-manifest", filepath.Join(productCandidateOutputDir, "android-prefix.manifest.json"), "output archive manifest path")
 	auditOut := fs.String("audit-out", filepath.Join(productCandidateOutputDir, "prefix.audit.json"), "output archive audit path")
-	zidePMBin := fs.String("zide-pm-bin", "", "optional Android zide-pm binary to include as usr/bin/zide-pm")
+	pmBin := fs.String("pm-bin", "", "optional Android zide-pm binary to include as usr/bin/zide-pm")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -34,8 +34,8 @@ func androidProductCandidateMaterialize(args []string) error {
 		"-audit-out", *auditOut,
 		"-hardcoded-policy", "fail",
 	}
-	if *zidePMBin != "" {
-		archiveArgs = append(archiveArgs, "-zide-pm-bin", *zidePMBin)
+	if *pmBin != "" {
+		archiveArgs = append(archiveArgs, "-pm-bin", *pmBin)
 	}
 
 	fmt.Printf("mp_a6_product_candidate_materialize manifest=%s hardcoded_termux_policy=fail\n", *manifestPath)
