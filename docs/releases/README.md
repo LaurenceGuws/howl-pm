@@ -32,7 +32,7 @@ stamp for offline on-device `doctor` / `list-available` support.
 Dev snapshot release policy:
 
 - provider: `termux-main`
-- provider role: `android-dev-bootstrap`
+- provider role: `android-dev-baseline`
 - hardcoded prefix policy: `audit`
 - GitHub release type: prerelease
 

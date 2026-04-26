@@ -18,7 +18,7 @@ This repo owns:
   publishing
 - mobile artifact manifests
 - provider metadata and trust boundaries
-- bootstrap/package artifact metadata
+- prefix package artifact metadata
 - checksum and version authority
 - package index snapshots
 - host-side artifact materialization tooling
@@ -70,7 +70,7 @@ go run ./cmd/howl-pm-admin validate examples/android-dev.manifest.json
 same manifest/archive contract as Howl and does not parse provider package
 internals.
 
-`dev-baseline` is current bringup naming for the first bootstrap/recommended
+`dev-baseline` is current bringup naming for the first dev-baseline/recommended
 profile. It should not be treated as the final long-term product name for
 onboarding/default package policy.
 
@@ -124,7 +124,7 @@ not. The shared layer is the artifact contract:
 Platform-specific package mechanics live behind that contract.
 
 Providers are build-time input sources. `termux-main` is the first Android
-provider and is currently a dev/bootstrap source, not Howl's product package
+provider and is currently a dev-baseline source, not Howl's product package
 manager. Future providers can include a Howl-owned Android feed, signed mirrors,
 or iOS-safe bundle sources without changing the consumer contract.
 
