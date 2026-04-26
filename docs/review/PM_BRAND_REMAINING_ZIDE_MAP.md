@@ -67,7 +67,7 @@ Categories:
 | internal/pm/host.go | 22 | // Empty or unset HOWL_PM_HOST_PLATFORM (or deprecated ZIDE_PM_HOST_PLATFORM) | Comment explaining fallback | KEEP |
 | app_architecture/ARTIFACT_CONTRACT.md | 64 | (or deprecated `ZIDE_PM_HOST_PLATFORM=android`) | Documented deprecated alias | KEEP |
 
-## must_rename: Branding drift in active code/docs (6 refs)
+## must_rename: Artifact naming and branding drift (17 refs)
 
 | File | Line | Text | Old | New | Reason |
 |------|------|------|-----|-----|--------|
@@ -77,19 +77,19 @@ Categories:
 | cmd/howl-pm-admin/product_candidate_probe.go | 24 | "zide-pm-admin-product-candidate-*" | zide-pm-admin | howl-pm-admin | Temp dir naming branding |
 | cmd/howl-pm-admin/product_candidate_probe.go | 30 | "zide-android-dev-prefix.tar.gz" | zide-android | howl-android | Output naming branding |
 | cmd/howl-pm-admin/product_candidate_materialize.go | 20 | "zide-android-prefix.tar.gz" | zide-android | howl-android | Output naming branding |
-
-## must_rename: Test artifact naming (6 refs)
-
-| File | Line | Text | Old | New | Reason |
-|------|------|------|-----|-----|--------|
 | internal/pm/pm_test.go | 64 | "zide-pm-test-binary-payload\n" | zide-pm | howl-pm | Test naming consistency |
 | internal/pm/pm_test.go | 77 | testBinaryArtifact("zide-test-payload", ... | zide-test | howl-test | Test naming consistency |
 | internal/pm/pm_test.go | 92 | InstallAndroidTestBinary(..., "zide-test-payload", ... | zide-test | howl-test | Test naming consistency |
 | internal/pm/pm_test.go | 125 | testBinaryArtifact("zide-test-payload", ... | zide-test | howl-test | Test naming consistency |
 | internal/pm/pm_test.go | 137 | InstallAndroidTestBinary(..., "zide-test-payload", ... | zide-test | howl-test | Test naming consistency |
 | docs/product-candidate/README.md | 14 | `dist/product-candidate/zide-android-prefix.tar.gz` | zide-android | howl-android | Documentation of output naming |
+| docs/todo/implementation.md | 90 | audit metadata is emitted into `dist/zide-android-dev-prefix.audit.json` | zide-android | howl-android | Implementation doc example |
+| cmd/howl-pm-admin/manifest_contract_test.go | 13 | "dist/zide-android-dev-prefix.tar.gz" | zide-android | howl-android | Test artifact name |
+| internal/manifest/manifest.go | 56 | "zide-android-userland-bootstrap" | zide-android | howl-android | Artifact name in default manifest |
+| internal/manifest/manifest.go | 79 | "zide-ios-tool-bundle" | zide-ios | howl-ios | Artifact name in default manifest |
+| examples/android-dev.manifest.json | 8 | "zide-android-userland-bootstrap" | zide-android | howl-android | Example artifact name |
 
-## historical: Contextual references (context/explanations, 3 refs)
+## historical: Contextual references (context/explanations, 12 refs)
 
 | File | Line | Text | Reason | Action |
 |------|------|------|--------|--------|
@@ -98,12 +98,8 @@ Categories:
 | app_architecture/ARTIFACT_CONTRACT.md | 122 | The historical `/data/data/zide.embed/files/usr` same-width bridge | Historical path explanation | KEEP for educational context |
 | app_architecture/ARTIFACT_CONTRACT.md | 124 | foreign `/data/data/zide.embed` directory (preserved for historical reference only) | Historical path explanation | KEEP for educational context |
 | app_architecture/HOWL_PM_ARTIFACT_CONSUMER.md | 86 | The earlier `/data/data/zide.embed/files/usr` bridge is **not** Android-app | Historical path explanation | KEEP for educational context |
-| docs/todo/implementation.md | 90 | audit metadata is emitted into `dist/zide-android-dev-prefix.audit.json` | Implementation doc example | RENAME to howl-android |
 | docs/todo/implementation.md | 147 | ZIDE_PM_HOST_PLATFORM=android for backwards compatibility | Already documented as deprecated | KEEP |
 | docs/todo/implementation.md | 230 | rejects `/data/data/zide.embed/files/usr` | Historical/educational | KEEP |
-| cmd/howl-pm-admin/manifest_contract_test.go | 13 | "dist/zide-android-dev-prefix.tar.gz" | Test artifact name | RENAME to howl-android |
-| internal/manifest/manifest.go | 56 | "zide-android-userland-bootstrap" | Artifact name in default manifest | RENAME to howl-android |
-| internal/manifest/manifest.go | 79 | "zide-ios-tool-bundle" | Artifact name in default manifest | RENAME to howl-ios |
 | app_architecture/HOWL_PM_CLI.md | 72 | (Legacy: `ZIDE_PM_HOST_PLATFORM=android` is supported for backwards compatibility.) | Already documented | KEEP |
 | app_architecture/HOWL_PM_CLI.md | 128 | `ZIDE_PM_GITHUB_TOKEN`), | Already documented | KEEP |
 | internal/pm/pm.go | 334 | if value := os.Getenv("ZIDE_PM_CACHE"); value != "" { | Fallback check for legacy var | KEEP |
@@ -115,10 +111,10 @@ Categories:
 ## Summary
 
 - **must_keep**: 48 references (Android package name, runtime paths, install stamp, metadata fields)
-- **must_rename**: 12 references (branding drift in active code/docs and test names)
-- **historical**: 18 references (context, fallback comments, educational references)
+- **must_rename**: 17 references (artifact naming and branding drift in code/docs/tests)
+- **historical**: 12 references (context, fallback comments, educational references)
 
-Total: 78 references accounted for.
+Total: 77 references accounted for.
 
 All must_keep references preserve artifact/runtime compatibility.
 All must_rename updates maintain semantic correctness while improving branding consistency.

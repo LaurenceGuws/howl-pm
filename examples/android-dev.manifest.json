@@ -5,7 +5,7 @@
   "channel": "dev",
   "artifacts": [
     {
-      "name": "zide-android-userland-bootstrap",
+      "name": "howl-android-userland-bootstrap",
       "kind": "android-prefix-archive",
       "version": "0.0.0-dev",
       "url": "TODO",
