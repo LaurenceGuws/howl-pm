@@ -1,13 +1,13 @@
 # PM-BRAND Remaining ZIDE References Audit
 
-Classification of 78 remaining ZIDE references after initial branding migration.
+Classification of 60 remaining ZIDE references after PM-BRAND-R3.
 
 Categories:
 - **must_keep**: Artifact/runtime compatibility critical (cannot change without breaking artifacts/semantics)
-- **must_rename**: Branding drift (should be updated to Howl)
-- **historical**: Release/context examples only (keep for reference/documentation)
+- **historical**: Legacy/reference context that should remain documented
+- **resolved_rename**: Branding drift rows that were already renamed in PM-BRAND-R2/R3 (tracked for closure evidence only)
 
-## must_keep (Android package name and runtime paths - 41 refs)
+## must_keep (Android package name and runtime paths)
 
 | File | Line | Text | Reason | Action |
 |------|------|------|--------|--------|
@@ -26,6 +26,7 @@ Categories:
 | internal/androidprefix/deb_test.go | 158 | "/data/data/uk.laurencegouws.zide/ul" | Test assertion for rewritten paths | KEEP |
 | cmd/howl-pm-admin/main.go | 662 | "package_name":                     "uk.laurencegouws.zide" | Manifest metadata generation | KEEP |
 | cmd/howl-pm-admin/main.go | 663 | "prefix":                           "/data/data/uk.laurencegouws.zide/files/usr" | Manifest metadata generation | KEEP |
+| cmd/howl-pm-admin/main.go | 808 | "Payload is pinned upstream package data. Product archives must still prove uk.laurencegouws.zide prefix correctness." | Runtime package identity statement | KEEP |
 | cmd/howl-pm-admin/release_smoke_test.go | 60 | "package_name":          "uk.laurencegouws.zide" | Test manifest generation | KEEP |
 | cmd/howl-pm-admin/release_smoke_test.go | 61 | "prefix":                "/data/data/uk.laurencegouws.zide/files/usr" | Test manifest generation | KEEP |
 | app_architecture/MOBILE_PACKAGE_MANAGER_BOUNDARY.md | 61 | `uk.laurencegouws.zide` | Documented Android package identity | KEEP |
@@ -59,37 +60,38 @@ Categories:
 | internal/pm/pm.go | 512 | ".zide-pm-install.json" | Install stamp filename (backwards compat) | KEEP |
 | app_architecture/HOWL_PM_ARTIFACT_CONSUMER.md | 74 | `zide_pm_cli` | Metadata field name in artifact contract | KEEP |
 
-## must_keep: Deprecated/legacy environment variable documentation (3 refs)
+## must_keep: Deprecated/legacy environment variable documentation
 
 | File | Line | Text | Reason | Action |
 |------|------|------|--------|--------|
 | internal/pm/host.go | 14 | const EnvHostPlatformLegacy = "ZIDE_PM_HOST_PLATFORM" | Legacy variable constant (fallback) | KEEP |
 | internal/pm/host.go | 22 | // Empty or unset HOWL_PM_HOST_PLATFORM (or deprecated ZIDE_PM_HOST_PLATFORM) | Comment explaining fallback | KEEP |
 | app_architecture/ARTIFACT_CONTRACT.md | 64 | (or deprecated `ZIDE_PM_HOST_PLATFORM=android`) | Documented deprecated alias | KEEP |
+| app_architecture/HOWL_PM_ARTIFACT_CONSUMER.md | 121 | when `HOWL_PM_HOST_PLATFORM=android` (or deprecated `ZIDE_PM_HOST_PLATFORM=android`). | Documented deprecated alias | KEEP |
 
-## must_rename: Artifact naming and branding drift (17 refs)
+## resolved_rename (already applied in PM-BRAND-R2/R3)
 
-| File | Line | Text | Old | New | Reason |
-|------|------|------|-----|-----|--------|
-| app_architecture/ANDROID_PRODUCT_PROVIDER_DECISION.md | 55 | **Zide-owned Android feed:** | Zide-owned | Howl-owned | Branding update |
-| app_architecture/ANDROID_PRODUCT_PROVIDER_DECISION.md | 56 | with Zide-controlled payloads | Zide-controlled | Howl-controlled | Branding update |
-| docs/todo/implementation.md | 243 | from a Zide-owned Android provider | Zide-owned | Howl-owned | Branding update |
-| cmd/howl-pm-admin/product_candidate_probe.go | 24 | "zide-pm-admin-product-candidate-*" | zide-pm-admin | howl-pm-admin | Temp dir naming branding |
-| cmd/howl-pm-admin/product_candidate_probe.go | 30 | "zide-android-dev-prefix.tar.gz" | zide-android | howl-android | Output naming branding |
-| cmd/howl-pm-admin/product_candidate_materialize.go | 20 | "zide-android-prefix.tar.gz" | zide-android | howl-android | Output naming branding |
-| internal/pm/pm_test.go | 64 | "zide-pm-test-binary-payload\n" | zide-pm | howl-pm | Test naming consistency |
-| internal/pm/pm_test.go | 77 | testBinaryArtifact("zide-test-payload", ... | zide-test | howl-test | Test naming consistency |
-| internal/pm/pm_test.go | 92 | InstallAndroidTestBinary(..., "zide-test-payload", ... | zide-test | howl-test | Test naming consistency |
-| internal/pm/pm_test.go | 125 | testBinaryArtifact("zide-test-payload", ... | zide-test | howl-test | Test naming consistency |
-| internal/pm/pm_test.go | 137 | InstallAndroidTestBinary(..., "zide-test-payload", ... | zide-test | howl-test | Test naming consistency |
-| docs/product-candidate/README.md | 14 | `dist/product-candidate/zide-android-prefix.tar.gz` | zide-android | howl-android | Documentation of output naming |
-| docs/todo/implementation.md | 90 | audit metadata is emitted into `dist/zide-android-dev-prefix.audit.json` | zide-android | howl-android | Implementation doc example |
-| cmd/howl-pm-admin/manifest_contract_test.go | 13 | "dist/zide-android-dev-prefix.tar.gz" | zide-android | howl-android | Test artifact name |
-| internal/manifest/manifest.go | 56 | "zide-android-userland-bootstrap" | zide-android | howl-android | Artifact name in default manifest |
-| internal/manifest/manifest.go | 79 | "zide-ios-tool-bundle" | zide-ios | howl-ios | Artifact name in default manifest |
-| examples/android-dev.manifest.json | 8 | "zide-android-userland-bootstrap" | zide-android | howl-android | Example artifact name |
+These 17 rows were branding drift in PM-BRAND-R2/R3 and are intentionally excluded from the remaining-hit count:
 
-## historical: Contextual references (context/explanations, 12 refs)
+- `app_architecture/ANDROID_PRODUCT_PROVIDER_DECISION.md:55`
+- `app_architecture/ANDROID_PRODUCT_PROVIDER_DECISION.md:56`
+- `docs/todo/implementation.md:243`
+- `cmd/howl-pm-admin/product_candidate_probe.go:24`
+- `cmd/howl-pm-admin/product_candidate_probe.go:30`
+- `cmd/howl-pm-admin/product_candidate_materialize.go:20`
+- `internal/pm/pm_test.go:64`
+- `internal/pm/pm_test.go:77`
+- `internal/pm/pm_test.go:92`
+- `internal/pm/pm_test.go:125`
+- `internal/pm/pm_test.go:137`
+- `docs/product-candidate/README.md:14`
+- `docs/todo/implementation.md:90`
+- `cmd/howl-pm-admin/manifest_contract_test.go:13`
+- `internal/manifest/manifest.go:56`
+- `internal/manifest/manifest.go:79`
+- `examples/android-dev.manifest.json:8`
+
+## historical: Contextual references (context/explanations)
 
 | File | Line | Text | Reason | Action |
 |------|------|------|--------|--------|
@@ -98,6 +100,7 @@ Categories:
 | app_architecture/ARTIFACT_CONTRACT.md | 122 | The historical `/data/data/zide.embed/files/usr` same-width bridge | Historical path explanation | KEEP for educational context |
 | app_architecture/ARTIFACT_CONTRACT.md | 124 | foreign `/data/data/zide.embed` directory (preserved for historical reference only) | Historical path explanation | KEEP for educational context |
 | app_architecture/HOWL_PM_ARTIFACT_CONSUMER.md | 86 | The earlier `/data/data/zide.embed/files/usr` bridge is **not** Android-app | Historical path explanation | KEEP for educational context |
+| docs/product-candidate/README.md | 45 | `/data/data/zide.embed/...` tree; the supported usr-root bridge is | Historical path explanation | KEEP for educational context |
 | docs/todo/implementation.md | 147 | ZIDE_PM_HOST_PLATFORM=android for backwards compatibility | Already documented as deprecated | KEEP |
 | docs/todo/implementation.md | 230 | rejects `/data/data/zide.embed/files/usr` | Historical/educational | KEEP |
 | app_architecture/HOWL_PM_CLI.md | 72 | (Legacy: `ZIDE_PM_HOST_PLATFORM=android` is supported for backwards compatibility.) | Already documented | KEEP |
@@ -110,12 +113,7 @@ Categories:
 
 ## Summary
 
-- **must_keep**: 48 references (Android package name, runtime paths, install stamp, metadata fields)
-- **must_rename**: 17 references (artifact naming and branding drift in code/docs/tests)
-- **historical**: 12 references (context, fallback comments, educational references)
+- **remaining mapped references**: 60 (`must_keep` + `historical`)
+- **resolved rename references**: 17 (`resolved_rename`, excluded from remaining count)
 
-Total: 77 references accounted for.
-
-All must_keep references preserve artifact/runtime compatibility.
-All must_rename updates maintain semantic correctness while improving branding consistency.
-All historical references provide context without affecting functionality.
+All remaining references are mapped and justified.
