@@ -87,7 +87,7 @@ Result:
   back at archived prefix files without making Howl parse provider internals
 - archive checksum and size are emitted into
   `dist/android-dev-prefix.manifest.json`
-- audit metadata is emitted into `dist/zide-android-dev-prefix.audit.json`
+- audit metadata is emitted into `dist/howl-android-dev-prefix.audit.json`
 - default hardcoded-prefix policy is `fail`; current dev archive generation
   must opt into `-hardcoded-policy audit`
 
@@ -240,7 +240,7 @@ Concrete input (**MP-A6-dash-minimal**):
 ## Next Tickets
 
 Decide whether Android product prefixes come from the current `termux-main`
-provider, from a controlled mirror/fork, or from a Zide-owned Android provider.
+provider, from a controlled mirror/fork, or from a Howl-owned Android provider.
 
 Acceptance:
 

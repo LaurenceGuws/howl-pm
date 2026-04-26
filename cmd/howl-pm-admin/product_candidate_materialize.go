@@ -17,7 +17,7 @@ func androidProductCandidateMaterialize(args []string) error {
 	manifestPath := fs.String("manifest", "dist/android-dev.manifest.json", "input MP-A1 Android dev manifest")
 	cacheDir := fs.String("cache-dir", ".cache/android/packages", "downloaded package cache directory")
 	workDir := fs.String("work-dir", ".cache/android/product-candidate-work", "temporary extraction directory")
-	out := fs.String("out", filepath.Join(productCandidateOutputDir, "zide-android-prefix.tar.gz"), "output prefix archive path")
+	out := fs.String("out", filepath.Join(productCandidateOutputDir, "howl-android-prefix.tar.gz"), "output prefix archive path")
 	outManifest := fs.String("out-manifest", filepath.Join(productCandidateOutputDir, "android-prefix.manifest.json"), "output archive manifest path")
 	auditOut := fs.String("audit-out", filepath.Join(productCandidateOutputDir, "prefix.audit.json"), "output archive audit path")
 	pmBin := fs.String("pm-bin", "", "optional Android howl-pm binary to include as usr/bin/howl-pm")

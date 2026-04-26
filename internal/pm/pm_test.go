@@ -61,7 +61,7 @@ func TestInstallAndroidTestBinaryWritesPayload(t *testing.T) {
 	t.Setenv(EnvHostPlatform, HostPlatformAndroid)
 	work := t.TempDir()
 	payloadPath := filepath.Join(work, "payload.dat")
-	payload := []byte("zide-pm-test-binary-payload\n")
+	payload := []byte("howl-pm-test-binary-payload\n")
 	if err := os.WriteFile(payloadPath, payload, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestInstallAndroidTestBinaryWritesPayload(t *testing.T) {
 		Platform:      "android",
 		Channel:       "dev",
 		Artifacts: []manifest.Artifact{
-			testBinaryArtifact("zide-test-payload", "payload.dat", int64(len(payload)), hexHash, "bin/smoke-test"),
+			testBinaryArtifact("howl-test-payload", "payload.dat", int64(len(payload)), hexHash, "bin/smoke-test"),
 		},
 	}
 	manifestPath := filepath.Join(work, "manifest.json")
@@ -89,7 +89,7 @@ func TestInstallAndroidTestBinaryWritesPayload(t *testing.T) {
 	}
 	prefix := filepath.Join(work, "usr")
 	cacheDir := filepath.Join(work, "cache")
-	res, err := InstallAndroidTestBinary(ctx, source, "zide-test-payload", prefix, cacheDir)
+	res, err := InstallAndroidTestBinary(ctx, source, "howl-test-payload", prefix, cacheDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func TestInstallAndroidTestBinaryRejectsWithoutHost(t *testing.T) {
 		Platform:      "android",
 		Channel:       "dev",
 		Artifacts: []manifest.Artifact{
-			testBinaryArtifact("zide-test-payload", "payload.dat", 1, "abc", "bin/x"),
+			testBinaryArtifact("howl-test-payload", "payload.dat", 1, "abc", "bin/x"),
 		},
 	}
 	manifestPath := filepath.Join(work, "manifest.json")
@@ -134,7 +134,7 @@ func TestInstallAndroidTestBinaryRejectsWithoutHost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = InstallAndroidTestBinary(ctx, source, "zide-test-payload", filepath.Join(work, "usr"), filepath.Join(work, "c"))
+	_, err = InstallAndroidTestBinary(ctx, source, "howl-test-payload", filepath.Join(work, "usr"), filepath.Join(work, "c"))
 	if err == nil {
 		t.Fatal("expected error without android host platform")
 	}

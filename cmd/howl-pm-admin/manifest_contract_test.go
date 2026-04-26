@@ -10,7 +10,7 @@ import (
 func TestNewAndroidPrefixManifestRuntimeSupportMetadataMatchesAuthority(t *testing.T) {
 	doc := newAndroidPrefixManifest(
 		"dev",
-		"dist/zide-android-dev-prefix.tar.gz",
+		"dist/howl-android-dev-prefix.tar.gz",
 		androidprefix.ArchiveStats{
 			SHA256:   strings.Repeat("a", 64),
 			Size:     1,

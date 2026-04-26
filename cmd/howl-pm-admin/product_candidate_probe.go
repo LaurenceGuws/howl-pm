@@ -21,13 +21,13 @@ func androidProductCandidateProbe(args []string) error {
 		return err
 	}
 
-	td, err := os.MkdirTemp("", "zide-pm-admin-product-candidate-*")
+	td, err := os.MkdirTemp("", "howl-pm-admin-product-candidate-*")
 	if err != nil {
 		return err
 	}
 	defer func() { _ = os.RemoveAll(td) }()
 
-	out := filepath.Join(td, "zide-android-dev-prefix.tar.gz")
+	out := filepath.Join(td, "howl-android-dev-prefix.tar.gz")
 	outManifest := filepath.Join(td, "android-dev-prefix.manifest.json")
 	workDir := filepath.Join(td, "prefix-work")
 

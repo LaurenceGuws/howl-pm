@@ -52,8 +52,8 @@ Closing MP-A6 requires choosing one of:
 1. **Narrowed `termux-main`:** keep provider id `termux-main` but change inputs
    (package set, patches, or mirror) until `android-prefix-archive` can ship
    with **`fail`** for the product candidate.
-2. **Zide-owned Android feed:** new provider id (for example `zide-android-main`)
-   with Zide-controlled payloads and metadata; same manifest kinds, different
+2. **Howl-owned Android feed:** new provider id (for example `howl-android-main`)
+   with Howl-controlled payloads and metadata; same manifest kinds, different
    trust boundary.
 3. **Controlled fork/mirror** of upstream: provider metadata names the mirror;
    payloads are still pinned by URL/hash in the manifest.
@@ -114,7 +114,7 @@ go run ./cmd/howl-pm-admin android-product-candidate-materialize \
 This is **`android-prefix-archive`** with **`hardcoded-policy=fail`** and default
 paths:
 
-- `dist/product-candidate/zide-android-prefix.tar.gz`
+- `dist/product-candidate/howl-android-prefix.tar.gz`
 - `dist/product-candidate/android-prefix.manifest.json`
 - `dist/product-candidate/prefix.audit.json`
 

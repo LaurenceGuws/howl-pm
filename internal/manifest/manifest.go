@@ -53,7 +53,7 @@ func NewSkeleton(platform string, channel string) (Document, error) {
 
 	if platform == "android" {
 		doc.Artifacts = append(doc.Artifacts, Artifact{
-			Name:    "zide-android-userland-bootstrap",
+			Name:    "howl-android-userland-bootstrap",
 			Kind:    "android-prefix-archive",
 			Version: "0.0.0-dev",
 			URL:     "TODO",
@@ -76,7 +76,7 @@ func NewSkeleton(platform string, channel string) (Document, error) {
 
 	if platform == "ios" {
 		doc.Artifacts = append(doc.Artifacts, Artifact{
-			Name:    "zide-ios-tool-bundle",
+			Name:    "howl-ios-tool-bundle",
 			Kind:    "ios-bundle-manifest",
 			Version: "0.0.0-dev",
 			URL:     "TODO",
