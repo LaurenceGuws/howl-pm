@@ -1,14 +1,14 @@
 # Howl mobile artifact consumer contract (MP-A7)
 
-Purpose: define what the **`zide` repository** (runtime) may rely on when
+Purpose: define what the **`howl` repository** (runtime) may rely on when
 staging mobile artifacts, and what it must **not** implement.
 
-`howl-pm` owns manifests and admin tooling; **`zide` owns integration**
+`howl-pm` owns manifests and admin tooling; **`howl` owns integration**
 (UX, lifecycle, staging orchestration). This contract is the seam between them.
 
 ## Inputs (allowed)
 
-`zide` may consume, for Android:
+`howl` may consume, for Android:
 
 - A **manifest** (`schema_version: 1`, `project: howl-pm`, `platform:
   android`) as a **local path** and/or **HTTPS URL** pinned by release or
@@ -86,11 +86,11 @@ path to the real prefix (`metadata.prefix`, typically
 The earlier `/data/data/zide.embed/files/usr` bridge is **not** Android-app
 materializable (APX-B18) and must not be used in new manifests.
 
-`zide` should treat unknown metadata keys as **opaque** unless this contract or
+`howl` should treat unknown metadata keys as **opaque** unless this contract or
 `ARTIFACT_CONTRACT.md` promotes them; do not infer provider package-manager
 behavior from them.
 
-`zide` may surface **`howl-pm`** inside the staged prefix for user-driven
+`howl` may surface **`howl-pm`** inside the staged prefix for user-driven
 install/catalog flows; the Zig/runtime layer should still treat the **manifest
 + prefix archive** as the authoritative bootstrap contract.
 
@@ -118,14 +118,14 @@ install/catalog flows; the Zig/runtime layer should still treat the **manifest
 ## `android-test-binary` (optional consumer note)
 
 Catalog-mode **`android-test-binary`** artifacts are consumed by **`howl-pm`**
-when `ZIDE_PM_HOST_PLATFORM=android`. The Zig app does not need a second
-installer: it runs `howl-pm` with that environment. Staging policy for those
-files is identical to pinned URL + hash + install path semantics documented in
-`ARTIFACT_CONTRACT.md`.
+when `HOWL_PM_HOST_PLATFORM=android` (or deprecated `ZIDE_PM_HOST_PLATFORM=android`).
+The Zig app does not need a second installer: it runs `howl-pm` with that
+environment. Staging policy for those files is identical to pinned URL + hash +
+install path semantics documented in `ARTIFACT_CONTRACT.md`.
 
 ## MP-A7 acceptance
 
-MP-A7 is **met** when `zide` implementation is audited against this document:
+MP-A7 is **met** when `howl` implementation is audited against this document:
 no package-internal parsers on product paths, staging is manifest-driven, and
 version/compatibility fields above are honored or explicitly surfaced to the
 operator on mismatch.

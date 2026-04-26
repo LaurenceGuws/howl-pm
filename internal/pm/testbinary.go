@@ -14,7 +14,7 @@ import (
 
 // InstallAndroidTestBinary downloads a pinned android-test-binary artifact and
 // writes it under prefix using install_relative_path from manifest metadata.
-// It requires Android catalog mode (ZIDE_PM_HOST_PLATFORM=android) and an
+// It requires Android catalog mode (HOWL_PM_HOST_PLATFORM=android) and an
 // Android manifest document.
 func InstallAndroidTestBinary(ctx context.Context, source Source, packageName string, prefix string, cacheDir string) (InstallResult, error) {
 	if strings.TrimSpace(prefix) == "" {

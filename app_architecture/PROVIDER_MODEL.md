@@ -1,7 +1,7 @@
 # Provider Model
 
 Purpose: define how `howl-pm` treats upstream package/artifact sources
-without making Zide a clone of any provider.
+without making Howl a clone of any provider.
 
 ## Definition
 
@@ -10,12 +10,12 @@ A provider is a build-time source of artifact metadata and payloads.
 Examples:
 
 - an Android package repository
-- a Zide-owned Android package feed
+- a Howl-owned Android package feed
 - an iOS-safe tool bundle source
 - a signed internal artifact mirror
 
-Providers are not runtime dependencies of Zide. Provider outputs must be
-converted into Zide artifact contracts before any Zide app consumes them.
+Providers are not runtime dependencies of Howl. Provider outputs must be
+converted into Howl artifact contracts before any Howl app consumes them.
 
 ## Initial Provider
 
@@ -67,7 +67,7 @@ owns *which provider wins for product*.
 ## Dev snapshot channel (interim)
 
 Until **MP-A6** closes with a product provider decision, the **authoritative
-dev consumer manifest** for Zide Android bringup is whatever `android-dev-*`
+dev consumer manifest** for Howl Android bringup is whatever `android-dev-*`
 GitHub prerelease `howl-pm-admin android-dev-snapshot-release` publishes most
 recently. That lane always snapshots `termux-main`, materializes a prefix
 archive under **hardcoded-prefix policy `audit`**, and ships the release-local
@@ -80,26 +80,26 @@ provider model above.
 
 ## Product Rule
 
-Zide consumes artifact contracts, not provider internals.
+Howl consumes artifact contracts, not provider internals.
 
 Acceptable:
 
 - `howl-pm` snapshots `termux-main`
 - `howl-pm` materializes a dev prefix archive
-- Zide stages an `android-prefix-archive` described by a manifest
+- Howl stages an `android-prefix-archive` described by a manifest
 
 Not acceptable:
 
-- Zide parses `.deb` package internals
-- Zide assumes Termux package layout is product-correct
-- provider-specific paths leak into product docs as Zide-owned paths
+- Howl parses `.deb` package internals
+- Howl assumes Termux package layout is product-correct
+- provider-specific paths leak into product docs as Howl-owned paths
 
 ## Future Providers
 
 Likely future providers:
 
-- `zide-android-main`: forked or rebuilt Android feed for product archives
-- `zide-mobile-assets`: shared editor/IDE resource bundles
+- `howl-android-main`: forked or rebuilt Android feed for product archives
+- `howl-mobile-assets`: shared editor/IDE resource bundles
 - `ios-bundled-tools`: iOS-safe artifacts with a separate execution model
 
 Android and iOS may share the provider vocabulary. They should not share

@@ -35,4 +35,4 @@ not automatic product acceptance: product channel rules still live in
 Archives built after this rewrite set advertise `runtime_support_links` for the
 `/data/data/uk.laurencegouws.zide/.z` bridge and short aliases under
 `/data/data/uk.laurencegouws.zide/` (`ul`, `ub`, `b`, `u/bsh`).
-See `ZIDE_MOBILE_ARTIFACT_CONSUMER.md` and emitted manifest metadata.
+See `../../app_architecture/HOWL_PM_ARTIFACT_CONSUMER.md` and emitted manifest metadata.

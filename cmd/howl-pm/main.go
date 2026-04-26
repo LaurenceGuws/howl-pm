@@ -78,7 +78,7 @@ func doctor(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	fmt.Printf("zide_pm_host_platform=%s\n", pm.CurrentHostPlatform())
+	fmt.Printf("howl_pm_host_platform=%s\n", pm.CurrentHostPlatform())
 	source, err := loadSource(*manifestPath)
 	if err != nil {
 		return doctorInstalled(*prefix, err)
@@ -170,7 +170,7 @@ func doctorInstalled(prefix string, manifestErr error) error {
 	if err != nil {
 		return fmt.Errorf("manifest unavailable (%v) and no install stamp at prefix %q: %w", manifestErr, prefix, err)
 	}
-	fmt.Printf("zide_pm_host_platform=%s\n", pm.CurrentHostPlatform())
+	fmt.Printf("howl_pm_host_platform=%s\n", pm.CurrentHostPlatform())
 	fmt.Printf("manifest=%s\n", stamp.Manifest)
 	fmt.Printf("installed=true\n")
 	fmt.Printf("package=%s\n", stamp.Package)

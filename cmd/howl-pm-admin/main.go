@@ -680,7 +680,7 @@ func newAndroidPrefixManifest(
 				"extracted_symlinks":               fmt.Sprintf("%d", audit.ExtractedSymlinks),
 				"archive_regular_files":            fmt.Sprintf("%d", archiveStats.Files),
 				"archive_symlinks":                 fmt.Sprintf("%d", archiveStats.Symlinks),
-				"zide_pm_cli":                      "included",
+				"howl_pm_cli":                      "included",
 			},
 			Limitations: []string{
 				"Development prefix archive for Android terminal bringup.",
@@ -689,7 +689,7 @@ func newAndroidPrefixManifest(
 		}},
 		Notes: []string{
 			"Archive root is usr/ and is intended to be staged under the Android app files directory.",
-			"Zide should consume this archive by manifest contract instead of parsing package internals.",
+			"Howl should consume this archive by manifest contract instead of parsing package internals.",
 		},
 	}
 }
@@ -769,7 +769,7 @@ func newAndroidDevManifest(
 			},
 		}},
 		Notes: []string{
-			"Development channel manifest for Zide Android terminal userland work.",
+			"Development channel manifest for Howl Android terminal userland work.",
 			"This pins package metadata and payload checksums; it is not a final product package-manager contract.",
 			"Root packages: " + strings.Join(roots, ","),
 		},

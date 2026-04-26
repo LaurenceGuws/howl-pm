@@ -1,6 +1,6 @@
 # Artifact Contract
 
-Purpose: define the language-neutral contract that `zide` and other consumers
+Purpose: define the language-neutral contract that `howl` and other consumers
 can rely on without importing this repo's implementation.
 
 ## Manifest
@@ -61,7 +61,8 @@ Meaning:
   under the app-private prefix at `metadata.install_relative_path` (relative to
   the prefix root, same layout as extracted `usr/` contents). Intended for
   Android catalog mode only: `howl-pm` lists and installs these when
-  `ZIDE_PM_HOST_PLATFORM=android`. iOS does not reuse this kind.
+  `HOWL_PM_HOST_PLATFORM=android` (or deprecated `ZIDE_PM_HOST_PLATFORM=android`).
+  iOS does not reuse this kind.
 
 The current kind names are intentionally specific because they describe the
 payload format. Provider identity is recorded separately in metadata.
@@ -120,7 +121,7 @@ compiled occurrences. That broader replace can shift `.rodata` layout; treat it
 as a deliberate trade for Android materialization (APX-B18 / MP-A9), not a silent
 compat shim. The historical `/data/data/zide.embed/files/usr` same-width bridge
 is **rejected** for Android app staging: it is not materializable without a
-foreign `/data/data/zide.embed` directory.
+foreign `/data/data/zide.embed` directory (preserved for historical reference only).
 `hardcoded_termux_hits` lists paths that still embed `/data/data/com.termux/files/usr`
 after those passes (for example symlink targets or non-binary payloads that were
 not rewritten).
@@ -152,11 +153,11 @@ claims. See `ANDROID_PRODUCT_PROVIDER_DECISION.md` and
 
 Consumers should treat manifests as immutable pinned inputs.
 
-Normative **`zide` runtime** obligations (staging, forbidden parsers, metadata
+Normative **`howl` runtime** obligations (staging, forbidden parsers, metadata
 fields used as version/compatibility truth) live in
-`ZIDE_MOBILE_ARTIFACT_CONSUMER.md`.
+`HOWL_PM_ARTIFACT_CONSUMER.md`.
 
-`zide` should consume:
+`howl` should consume:
 
 - a manifest URL or local path
 - artifact hashes
@@ -164,7 +165,7 @@ fields used as version/compatibility truth) live in
 - platform compatibility metadata
 - provider provenance metadata
 
-`zide` should not consume:
+`howl` should not consume:
 
 - package recipe internals
 - temporary cache layout

@@ -327,21 +327,25 @@ func IsURL(value string) bool {
 }
 
 func DefaultCacheDir() string {
+	if value := os.Getenv("HOWL_PM_CACHE"); value != "" {
+		return value
+	}
+	// Fall back to deprecated alias for compatibility.
 	if value := os.Getenv("ZIDE_PM_CACHE"); value != "" {
 		return value
 	}
 	if value := os.Getenv("XDG_CACHE_HOME"); value != "" {
-		return filepath.Join(value, "zide-pm")
+		return filepath.Join(value, "howl-pm")
 	}
 	if runtime.GOOS == "android" {
 		if value := os.Getenv("TMPDIR"); value != "" {
-			return filepath.Join(value, "zide-pm-cache")
+			return filepath.Join(value, "howl-pm-cache")
 		}
 	}
 	if home, err := os.UserHomeDir(); err == nil && home != "" {
-		return filepath.Join(home, ".cache", "zide-pm")
+		return filepath.Join(home, ".cache", "howl-pm")
 	}
-	return filepath.Join(os.TempDir(), "zide-pm-cache")
+	return filepath.Join(os.TempDir(), "howl-pm-cache")
 }
 
 type extractStats struct {
@@ -391,11 +395,14 @@ func downloadURL(ctx context.Context, target string, outputPath string) error {
 }
 
 func addAuthHeaders(request *http.Request) {
-	request.Header.Set("User-Agent", "zide-pm")
+	request.Header.Set("User-Agent", "howl-pm")
 	if request.URL.Host != "github.com" {
 		return
 	}
-	for _, name := range []string{"ZIDE_PM_GITHUB_TOKEN", "GITHUB_TOKEN", "GH_TOKEN"} {
+	// Check environment variables in priority order:
+	// HOWL_PM_GITHUB_TOKEN (primary), ZIDE_PM_GITHUB_TOKEN (legacy),
+	// GITHUB_TOKEN, GH_TOKEN, then gh CLI token.
+	for _, name := range []string{"HOWL_PM_GITHUB_TOKEN", "ZIDE_PM_GITHUB_TOKEN", "GITHUB_TOKEN", "GH_TOKEN"} {
 		if token := os.Getenv(name); token != "" {
 			request.Header.Set("Authorization", "Bearer "+token)
 			return

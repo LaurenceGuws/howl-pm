@@ -11,7 +11,7 @@ const productCandidateOutputDir = "dist/product-candidate"
 // androidProductCandidateMaterialize runs android-prefix-archive with
 // hardcoded-policy=fail and default outputs under dist/product-candidate/.
 // It is the MP-A6 materialization step: on success, leaves tarball + prefix
-// manifest + audit for downstream packaging or zide staging experiments.
+// manifest + audit for downstream packaging or howl staging experiments.
 func androidProductCandidateMaterialize(args []string) error {
 	fs := flag.NewFlagSet("android-product-candidate-materialize", flag.ExitOnError)
 	manifestPath := fs.String("manifest", "dist/android-dev.manifest.json", "input MP-A1 Android dev manifest")
@@ -20,7 +20,7 @@ func androidProductCandidateMaterialize(args []string) error {
 	out := fs.String("out", filepath.Join(productCandidateOutputDir, "zide-android-prefix.tar.gz"), "output prefix archive path")
 	outManifest := fs.String("out-manifest", filepath.Join(productCandidateOutputDir, "android-prefix.manifest.json"), "output archive manifest path")
 	auditOut := fs.String("audit-out", filepath.Join(productCandidateOutputDir, "prefix.audit.json"), "output archive audit path")
-	pmBin := fs.String("pm-bin", "", "optional Android zide-pm binary to include as usr/bin/zide-pm")
+	pmBin := fs.String("pm-bin", "", "optional Android howl-pm binary to include as usr/bin/howl-pm")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}

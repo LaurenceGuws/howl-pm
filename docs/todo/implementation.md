@@ -39,9 +39,9 @@ Result:
 
 - providers are defined as build-time artifact sources
 - `termux-main` is the initial Android dev/bootstrap provider
-- provider outputs must become Zide artifact contracts before Zide consumes
+- provider outputs must become Howl artifact contracts before Howl consumes
   them
-- docs forbid treating provider internals as Zide runtime package-manager
+- docs forbid treating provider internals as Howl runtime package-manager
   behavior
 
 ### MP-A1 Android Dev Artifact Manifest — met, first cut
@@ -78,13 +78,13 @@ Result:
 - only `data/data/com.termux/files/usr/*` payload paths are extracted
 - output archive is rooted at `usr/` for staging under Android app files
 - text files and symlink targets that contain the old Termux prefix are
-  rewritten to the Zide app prefix where safe
+  rewritten to the Howl app prefix where safe
 - known compiled Bash/htop provider paths are rewritten as fixed-width
   C-strings and counted separately as binary rewrites
 - runtime support files required by those binary rewrites are advertised in
   archive metadata for the app consumer to materialize
 - runtime support symlinks are advertised so shortened binary paths can point
-  back at archived prefix files without making Zide parse provider internals
+  back at archived prefix files without making Howl parse provider internals
 - archive checksum and size are emitted into
   `dist/android-dev-prefix.manifest.json`
 - audit metadata is emitted into `dist/zide-android-dev-prefix.audit.json`
@@ -128,6 +128,7 @@ Result:
 - the MVP consumes the Android prefix manifest/archive contract
 - it does not parse `.deb` payloads or provider package internals
 - install writes `.howl-pm-install.json` state into the target prefix
+- `howl-pm doctor` prints `howl_pm_host_platform`
 
 Boundary:
 
@@ -142,12 +143,13 @@ Result:
 
 - artifact kind `android-test-binary` validates on Android manifests with
   `metadata.install_relative_path` and standard provider metadata
-- `howl-pm` honors `ZIDE_PM_HOST_PLATFORM=android` for catalog visibility;
-  without it, test-binary entries stay out of `list-available` so host runs do
-  not imply Android-only install semantics
+- `howl-pm` honors `HOWL_PM_HOST_PLATFORM=android` (or deprecated
+  `ZIDE_PM_HOST_PLATFORM=android` for backwards compatibility) for catalog
+  visibility; without it, test-binary entries stay out of `list-available` so
+  host runs do not imply Android-only install semantics
 - `howl-pm install <android-test-binary name>` downloads the pinned payload,
   verifies size/hash, and writes under the prefix at `install_relative_path`
-- `howl-pm doctor` prints `zide_pm_host_platform`
+- `howl-pm doctor` prints `howl_pm_host_platform`
 - iOS is not assigned this kind; platform/kind pairing stays explicit in
   validation
 
@@ -158,10 +160,10 @@ Boundary:
 
 Follow-on:
 
-- `android-dev-snapshot-release` now materializes `assets/zide-android-catalog-smoke.sh`,
-  appends artifact `zide-android-catalog-smoke` (`android-test-binary`) to the
+- `android-dev-snapshot-release` now materializes `assets/howl-android-catalog-smoke.sh`,
+  appends artifact `howl-android-catalog-smoke` (`android-test-binary`) to the
   published `android-dev-prefix.release.manifest.json`, and uploads the payload
-  as `zide-android-catalog-smoke.sh` on the same GitHub prerelease.
+  as `howl-android-catalog-smoke.sh` on the same GitHub prerelease.
 
 ### MP-A5 Android howl-pm Staging — met
 
@@ -185,6 +187,13 @@ Boundary:
 - on-device `install dev-baseline` is not claimed yet
 - this proves the product CLI exists in the shell and can report installed
   package state
+- Note10 validation proves:
+  - `howl-pm help` runs as an Android binary
+  - artifact-staged app prefix includes `howl-pm`
+  - `howl-pm doctor --manifest /no/such/manifest --prefix $PREFIX` works under
+    `run-as uk.laurencegouws.zide`
+  - `howl-pm list-available --manifest /no/such/manifest --prefix $PREFIX`
+    prints `dev-baseline`
 
 ## Current Priority
 
@@ -224,9 +233,9 @@ Concrete input (**MP-A6-dash-minimal**):
 
 ### MP-A10 Android in-prefix howl-pm networking (APX-B18)
 
-- `internal/zidepm/resolver_android.go` wires Android-only DNS bootstrap for
+- `internal/pm/resolver_android.go` wires Android-only DNS bootstrap for
   GitHub manifest/archive fetches (`getprop net.dns*` then `8.8.8.8:53`).
-- Authority: `app_architecture/ZIDE_PM_CLI.md` § Android networking.
+- Authority: `app_architecture/HOWL_PM_CLI.md` § Android networking.
 
 ## Next Tickets
 
@@ -241,11 +250,11 @@ Acceptance:
 - `android-prefix-archive` can run with `-hardcoded-policy fail` for the chosen
   product candidate
 
-### MP-A7 Zide Consumer Contract
+### MP-A7 Howl Consumer Contract
 
 Groundwork (**MP-A7-doc**):
 
-- `app_architecture/ZIDE_MOBILE_ARTIFACT_CONSUMER.md` states allowed manifest
+- `app_architecture/HOWL_PM_ARTIFACT_CONSUMER.md` states allowed manifest
   inputs, required staging/verification behavior, forbidden package-internal
   parsers, and which metadata fields constitute version/compatibility truth for
   the Zig/runtime consumer (including top-level manifest document fields aligned
@@ -253,8 +262,8 @@ Groundwork (**MP-A7-doc**):
 
 Acceptance:
 
-- `zide` does not parse package internals
-- `zide` can stage a produced artifact by manifest path
+- `howl` does not parse package internals
+- `howl` can stage a produced artifact by manifest path
 - version stamp and compatibility metadata are explicit
 
 ### MP-I1 iOS Artifact Research

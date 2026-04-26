@@ -5,21 +5,28 @@ import (
 	"strings"
 )
 
-// EnvHostPlatform is the environment variable Zide sets for in-app zide-pm runs
+// EnvHostPlatform is the environment variable Howl sets for in-app howl-pm runs
 // so catalog and test-binary install paths stay Android-scoped without forking
 // the CLI surface.
-const EnvHostPlatform = "ZIDE_PM_HOST_PLATFORM"
+const EnvHostPlatform = "HOWL_PM_HOST_PLATFORM"
+
+// EnvHostPlatformLegacy is the deprecated alias for backwards compatibility.
+const EnvHostPlatformLegacy = "ZIDE_PM_HOST_PLATFORM"
 
 const (
 	HostPlatformAndroid = "android"
 	HostPlatformHost    = "host"
 )
 
-// CurrentHostPlatform returns the normalized host execution class for zide-pm.
-// Empty or unset ZIDE_PM_HOST_PLATFORM means developer/generic host (not the
-// Android in-app catalog mode).
+// CurrentHostPlatform returns the normalized host execution class for howl-pm.
+// Empty or unset HOWL_PM_HOST_PLATFORM (or deprecated ZIDE_PM_HOST_PLATFORM)
+// means developer/generic host (not the Android in-app catalog mode).
 func CurrentHostPlatform() string {
 	v := strings.TrimSpace(os.Getenv(EnvHostPlatform))
+	if v == "" {
+		// Fall back to deprecated alias for compatibility.
+		v = strings.TrimSpace(os.Getenv(EnvHostPlatformLegacy))
+	}
 	if v == "" {
 		return HostPlatformHost
 	}

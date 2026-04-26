@@ -62,17 +62,19 @@ The intended product direction is:
 
 ## Android catalog mode
 
-When the Howl Android host runs `howl-pm`, it sets `ZIDE_PM_HOST_PLATFORM=android`.
+When the Howl Android host runs `howl-pm`, it sets `HOWL_PM_HOST_PLATFORM=android`.
 In that mode, manifests may advertise additional `android-test-binary` artifacts;
 `howl-pm list-available` and `howl-pm install <name>` treat those as first-class
 packages alongside `dev-baseline`. Without this variable (typical developer
 machine runs), the test-binary catalog stays hidden so host workflows do not
 accidentally claim Android-only install semantics.
 
-Published Android dev snapshot manifests include `zide-android-catalog-smoke`
+(Legacy: `ZIDE_PM_HOST_PLATFORM=android` is supported for backwards compatibility.)
+
+Published Android dev snapshot manifests include `howl-android-catalog-smoke`
 (`android-test-binary`) so devices can validate pull/install without ad-hoc URLs.
 
-`howl-pm doctor` prints `zide_pm_host_platform` so operators can see which mode
+`howl-pm doctor` prints `howl_pm_host_platform` so operators can see which mode
 is active.
 
 ## Android networking (MP-A10 / APX-B18)
@@ -122,8 +124,9 @@ howl-pm install dev-baseline \
   --prefix ./tmp/usr
 ```
 
-Private GitHub release URLs use `ZIDE_PM_GITHUB_TOKEN`, `GITHUB_TOKEN`,
-`GH_TOKEN`, or `gh auth token` when available.
+Private GitHub release URLs use `HOWL_PM_GITHUB_TOKEN` (or deprecated
+`ZIDE_PM_GITHUB_TOKEN`), `GITHUB_TOKEN`, `GH_TOKEN`, or `gh auth token` when
+available.
 
 Dev prefix archives include:
 
