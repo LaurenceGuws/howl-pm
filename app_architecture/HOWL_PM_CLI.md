@@ -31,6 +31,7 @@ The first MVP is deliberately narrow.
 Commands:
 
 - `howl-pm doctor`
+- `howl-pm list-providers`
 - `howl-pm list-available`
 - `howl-pm install dev-baseline --prefix <path>`
 
@@ -100,6 +101,9 @@ That work is backend/package-authority infrastructure, not product CLI surface.
 
 The user-facing CLI should not expose Termux as the product. It can report
 `provider=termux-main` as provenance while keeping the command model Howl-owned.
+
+`howl-pm list-providers` exposes public provider ids only. Internal baseline
+package policy is not listed as a provider.
 
 ## Android First
 

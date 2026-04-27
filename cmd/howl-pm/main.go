@@ -28,6 +28,8 @@ func main() {
 		fmt.Println(version)
 	case "doctor":
 		err = doctor(os.Args[2:])
+	case "list-providers", "providers":
+		err = listProviders(os.Args[2:])
 	case "list-available", "list":
 		err = listAvailable(os.Args[2:])
 	case "install":
@@ -49,6 +51,7 @@ Usage:
 
 Commands:
   doctor          Validate the configured package manifest and print provider info.
+  list-providers  List public provider ids available to the CLI surface.
   list-available  List packages/groups available from the manifest.
   install         Install a supported package/group into a prefix.
   version         Print the tool version.
@@ -63,12 +66,24 @@ Android catalog (HOWL_PM_HOST_PLATFORM=android):
 
 Examples:
   howl-pm doctor
+  howl-pm list-providers
   howl-pm list-available
   howl-pm install dev-baseline --prefix /data/data/uk.laurencegouws.zide/files/usr
   howl-pm install dev-baseline --manifest ./android-dev-prefix.release.manifest.json --prefix ./tmp/usr
 
 howl-pm is the product CLI surface. Provider/package internals stay behind the
 manifest contract.`)
+}
+
+func listProviders(args []string) error {
+	fs := commonFlagSet("list-providers")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	for _, provider := range pm.PublicProviders("android") {
+		fmt.Printf("%s\t%s\n", provider.ID, provider.Summary)
+	}
+	return nil
 }
 
 func doctor(args []string) error {

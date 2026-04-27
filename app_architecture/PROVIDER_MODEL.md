@@ -17,6 +17,18 @@ Examples:
 Providers are not runtime dependencies of Howl. Provider outputs must be
 converted into Howl artifact contracts before any Howl app consumes them.
 
+## Provider Registry (Android)
+
+`howl-pm` keeps a provider entity registry for Android with two entries:
+
+- `android-userland` (internal): Howl-maintained subset contract built from
+  `termux-main` inputs. This is for default baseline policy, not direct user
+  provider selection.
+- `termux-main` (public): upstream provider exposed in the user-facing CLI.
+
+Default package profiles (for example `dev-baseline`) are package policy, not
+providers, and are excluded from provider listing.
+
 ## Initial Provider
 
 Provider id: `termux-main`

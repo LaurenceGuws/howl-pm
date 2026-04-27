@@ -52,6 +52,7 @@ Current CLI surface:
 ```bash
 go run ./cmd/howl-pm help
 go run ./cmd/howl-pm doctor
+go run ./cmd/howl-pm list-providers
 go run ./cmd/howl-pm list-available
 go run ./cmd/howl-pm install dev-baseline --prefix ./tmp/usr
 
@@ -66,9 +67,13 @@ go run ./cmd/howl-pm-admin validate examples/android-dev.manifest.json
 ```
 
 `howl-pm` is the product CLI surface. The MVP supports `doctor`,
-`list-available`, and `install dev-baseline --prefix <path>`. It consumes the
-same manifest/archive contract as Howl and does not parse provider package
-internals.
+`list-providers`, `list-available`, and `install dev-baseline --prefix <path>`.
+It consumes the same manifest/archive contract as Howl and does not parse
+provider package internals.
+
+Provider listing excludes internal default package policy. Public provider
+surface currently includes `termux-main`; internal `android-userland` package
+policy remains Howl-owned and non-public.
 
 `dev-baseline` is current bringup naming for the first dev-baseline/recommended
 profile. It should not be treated as the final long-term product name for
