@@ -72,7 +72,7 @@ Examples:
   howl-pm install dev-baseline --manifest ./android-dev-prefix.release.manifest.json --prefix ./tmp/usr
 
 howl-pm is the product CLI surface. Provider/package internals stay behind the
-manifest contract.`)
+manifest api.`)
 }
 
 func listProviders(args []string) error {

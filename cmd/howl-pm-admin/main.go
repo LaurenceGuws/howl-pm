@@ -34,8 +34,8 @@ func main() {
 		printHelp()
 	case "version":
 		fmt.Println(version)
-	case "contract":
-		if err := printContract(os.Args[2:]); err != nil {
+	case "api":
+		if err := printapi(os.Args[2:]); err != nil {
 			die(err)
 		}
 	case "android-dev-manifest":
@@ -84,7 +84,7 @@ Commands:
              MP-A6 path: same as probe policy but writes dist/product-candidate/* on success.
   android-dev-snapshot-release
              Publish a fast Android dev snapshot prerelease with generated artifacts.
-  contract   Print the current artifact contract skeleton as JSON.
+  api   Print the current artifact api skeleton as JSON.
   validate   Validate a manifest JSON file against the current schema floor.
   version    Print the tool version.
   help       Show this help.
@@ -366,8 +366,8 @@ func androidPrefixArchive(args []string) error {
 	return nil
 }
 
-func printContract(args []string) error {
-	fs := flag.NewFlagSet("contract", flag.ExitOnError)
+func printapi(args []string) error {
+	fs := flag.NewFlagSet("api", flag.ExitOnError)
 	platform := fs.String("platform", "android", "target platform: android or ios")
 	channel := fs.String("channel", "dev", "artifact channel name")
 	if err := fs.Parse(args); err != nil {
@@ -689,7 +689,7 @@ func newAndroidPrefixManifest(
 		}},
 		Notes: []string{
 			"Archive root is usr/ and is intended to be staged under the Android app files directory.",
-			"Howl should consume this archive by manifest contract instead of parsing package internals.",
+			"Howl should consume this archive by manifest api instead of parsing package internals.",
 		},
 	}
 }
@@ -770,7 +770,7 @@ func newAndroidDevManifest(
 		}},
 		Notes: []string{
 			"Development channel manifest for Howl Android terminal userland work.",
-			"This pins package metadata and payload checksums; it is not a final product package-manager contract.",
+			"This pins package metadata and payload checksums; it is not a final product package-manager api.",
 			"Root packages: " + strings.Join(roots, ","),
 		},
 	}

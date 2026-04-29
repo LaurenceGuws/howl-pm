@@ -18,7 +18,7 @@ var providerRegistry = []Provider{
 		Platform: "android",
 		Scope:    "subset",
 		Upstream: "termux-main",
-		Summary:  "Howl-maintained Android userland subset contract",
+		Summary:  "Howl-maintained Android userland subset api",
 		Public:   false,
 	},
 	{
