@@ -21,13 +21,21 @@ func TestAvailablePackagesHidesTestBinariesWithoutAndroidHost(t *testing.T) {
 		Channel:       "dev",
 		Artifacts: []manifest.Artifact{
 			prefixArchiveStub(),
+			termuxDebStub("bash"),
+			termuxDebStub("htop"),
 			testBinaryStub("tb-one", "bin/one"),
 		},
 	}
 	source := Source{Location: "file:///tmp/x.json", Document: doc}
 	got := AvailablePackages(source)
-	if len(got) != 1 || got[0] != DevBaselinePackage {
-		t.Fatalf("expected only dev-baseline, got %#v", got)
+	want := []string{"bash", "htop"}
+	if len(got) != len(want) {
+		t.Fatalf("got %#v want %#v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("got %#v want %#v", got, want)
+		}
 	}
 }
 
@@ -40,13 +48,15 @@ func TestAvailablePackagesListsTestBinariesOnAndroidHost(t *testing.T) {
 		Channel:       "dev",
 		Artifacts: []manifest.Artifact{
 			prefixArchiveStub(),
+			termuxDebStub("bash"),
+			termuxDebStub("htop"),
 			testBinaryStub("tb-b", "bin/b"),
 			testBinaryStub("tb-a", "bin/a"),
 		},
 	}
 	source := Source{Location: "file:///tmp/x.json", Document: doc}
 	got := AvailablePackages(source)
-	want := []string{DevBaselinePackage, "tb-a", "tb-b"}
+	want := []string{"bash", "htop", "tb-a", "tb-b"}
 	if len(got) != len(want) {
 		t.Fatalf("got %#v want %#v", got, want)
 	}
@@ -160,6 +170,24 @@ func prefixArchiveStub() manifest.Artifact {
 
 func testBinaryStub(name, rel string) manifest.Artifact {
 	return testBinaryArtifact(name, "http://example.invalid/x", 1, repeatChar('a', 64), rel)
+}
+
+func termuxDebStub(name string) manifest.Artifact {
+	return manifest.Artifact{
+		Name:    "termux-" + name,
+		Kind:    "android-termux-deb",
+		Version: "1",
+		URL:     "http://example.invalid/" + name + ".deb",
+		SHA256:  repeatChar('c', 64),
+		Size:    1,
+		Metadata: map[string]string{
+			"provider":              "termux-main",
+			"provider_role":         "android-dev-bootstrap",
+			"provider_platform":     "android",
+			"provider_architecture": "aarch64",
+			"package":               name,
+		},
+	}
 }
 
 func testBinaryArtifact(name, url string, size int64, sha256, rel string) manifest.Artifact {

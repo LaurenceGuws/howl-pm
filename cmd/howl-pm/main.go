@@ -66,21 +66,18 @@ Commands:
   version         Print the tool version.
   help            Show this help.
 
-Current MVP package:
-  dev-baseline    Bash + Neovim + Git + ripgrep + htop + gotop baseline.
-
 Android catalog (HOWL_PM_HOST_PLATFORM=android):
   android-test-binary artifacts from the manifest are listed and installable as
   additional package names (host-side runs keep this catalog off by default).
 
 Examples:
   howl-pm pkg update
-  howl-pm pkg install dev-baseline
+  howl-pm pkg install bash
   howl-pm doctor
   howl-pm list-providers
   howl-pm list-available
-  howl-pm install dev-baseline --prefix /data/data/uk.laurencegouws.zide/files/usr
-  howl-pm install dev-baseline --manifest ./android-dev-prefix.release.manifest.json --prefix ./tmp/usr
+  howl-pm install bash --prefix /data/data/uk.laurencegouws.zide/files/usr
+  howl-pm install bash --manifest ./android-dev-prefix.release.manifest.json --prefix ./tmp/usr
 
 howl-pm is the product CLI surface. Provider/package internals stay behind the
 manifest api.`)
@@ -140,7 +137,7 @@ Usage:
 
 Commands:
   update          Validate/refresh manifest source.
-  upgrade         Reinstall dev-baseline into prefix.
+  upgrade         Reinstall internal baseline into prefix.
   install         Install a package/group.
   remove          Remove a package (not implemented yet).
   search          Search manifest package names.
@@ -344,9 +341,6 @@ func pkgShow(args []string) error {
 		return fmt.Errorf("package %q not found", name)
 	}
 	fmt.Printf("package=%s\n", name)
-	if name == pm.DevBaselinePackage {
-		fmt.Println("summary=Howl Android baseline prefix package")
-	}
 	for _, artifact := range source.Document.Artifacts {
 		if artifact.Name == name {
 			fmt.Printf("version=%s\n", artifact.Version)

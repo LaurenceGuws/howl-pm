@@ -90,19 +90,6 @@ func LoadSource(ctx context.Context, location string) (Source, error) {
 }
 
 func AvailablePackages(source Source) []string {
-	var out []string
-	if _, err := AndroidPrefixArtifact(source); err == nil {
-		out = append(out, DevBaselinePackage)
-	}
-	if AndroidCatalogActive() {
-		tb := testBinaryPackageNames(source)
-		sort.Strings(tb)
-		out = append(out, tb...)
-	}
-	if len(out) > 0 {
-		return out
-	}
-
 	seen := map[string]bool{}
 	var packages []string
 	for _, artifact := range source.Document.Artifacts {
@@ -117,6 +104,11 @@ func AvailablePackages(source Source) []string {
 		packages = append(packages, name)
 	}
 	sort.Strings(packages)
+	if AndroidCatalogActive() {
+		tb := testBinaryPackageNames(source)
+		sort.Strings(tb)
+		packages = append(packages, tb...)
+	}
 	return packages
 }
 
