@@ -207,7 +207,7 @@ func listAvailable(args []string) error {
 func install(args []string) error {
 	fs := commonFlagSet("install")
 	manifestPath := fs.String("manifest", pm.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
-	prefix := fs.String("prefix", "", "installation prefix, required")
+	prefix := fs.String("prefix", defaultPrefix(), "installation prefix (defaults to $PREFIX)")
 	cacheDir := fs.String("cache-dir", pm.DefaultCacheDir(), "download/cache directory")
 	args = reorderFlags(args, map[string]bool{
 		"manifest":  true,
@@ -221,7 +221,7 @@ func install(args []string) error {
 		return fmt.Errorf("install expects at least one package")
 	}
 	if strings.TrimSpace(*prefix) == "" {
-		return fmt.Errorf("--prefix is required")
+		return fmt.Errorf("installation prefix is empty; set $PREFIX or pass --prefix")
 	}
 
 	source, err := loadSource(*manifestPath)
