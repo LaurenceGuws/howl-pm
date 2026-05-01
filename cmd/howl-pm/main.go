@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -15,27 +16,34 @@ import (
 const version = "0.1.1-beta.1"
 
 func main() {
-	if len(os.Args) < 2 {
+	args := normalizedArgs(os.Args)
+	if len(args) < 2 {
 		printHelp()
 		return
 	}
-
+	if args[1] == "pkg" {
+		if err := pkgCommand(args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
 	var err error
-	switch os.Args[1] {
+	switch args[1] {
 	case "help", "-h", "--help":
 		printHelp()
 	case "version":
 		fmt.Println(version)
 	case "doctor":
-		err = doctor(os.Args[2:])
+		err = doctor(args[2:])
 	case "list-providers", "providers":
-		err = listProviders(os.Args[2:])
+		err = listProviders(args[2:])
 	case "list-available", "list":
-		err = listAvailable(os.Args[2:])
+		err = listAvailable(args[2:])
 	case "install":
-		err = install(os.Args[2:])
+		err = install(args[2:])
 	default:
-		err = fmt.Errorf("unknown command %q", os.Args[1])
+		err = fmt.Errorf("unknown command %q", args[1])
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -50,6 +58,7 @@ Usage:
   howl-pm <command> [options]
 
 Commands:
+  pkg             Termux-style package UX (update/install/upgrade/search/show/remove).
   doctor          Validate the configured package manifest and print provider info.
   list-providers  List public provider ids available to the CLI surface.
   list-available  List packages/groups available from the manifest.
@@ -65,6 +74,8 @@ Android catalog (HOWL_PM_HOST_PLATFORM=android):
   additional package names (host-side runs keep this catalog off by default).
 
 Examples:
+  howl-pm pkg update
+  howl-pm pkg install dev-baseline
   howl-pm doctor
   howl-pm list-providers
   howl-pm list-available
@@ -73,6 +84,69 @@ Examples:
 
 howl-pm is the product CLI surface. Provider/package internals stay behind the
 manifest api.`)
+}
+
+func normalizedArgs(args []string) []string {
+	if len(args) == 0 {
+		return args
+	}
+	base := filepath.Base(args[0])
+	if base == "pkg" {
+		out := make([]string, 0, len(args)+1)
+		out = append(out, args[0], "pkg")
+		out = append(out, args[1:]...)
+		return out
+	}
+	return args
+}
+
+func pkgCommand(args []string) error {
+	if len(args) == 0 {
+		printPkgHelp()
+		return nil
+	}
+	sub := args[0]
+	rest := args[1:]
+	switch sub {
+	case "help", "-h", "--help":
+		printPkgHelp()
+		return nil
+	case "update", "up":
+		return doctor(rest)
+	case "upgrade":
+		return install(append([]string{pm.DevBaselinePackage}, rest...))
+	case "install", "in":
+		return install(rest)
+	case "remove", "rm", "uninstall":
+		return fmt.Errorf("pkg remove is not implemented yet")
+	case "search", "s":
+		return pkgSearch(rest)
+	case "show":
+		return pkgShow(rest)
+	case "list-all":
+		return listAvailable(rest)
+	case "list-installed":
+		return pkgListInstalled(rest)
+	default:
+		return fmt.Errorf("unknown pkg command %q", sub)
+	}
+}
+
+func printPkgHelp() {
+	fmt.Println(`pkg wraps howl-pm with a Termux-style command shape.
+
+Usage:
+  pkg <command> [options]
+
+Commands:
+  update          Validate/refresh manifest source.
+  upgrade         Reinstall dev-baseline into prefix.
+  install         Install a package/group.
+  remove          Remove a package (not implemented yet).
+  search          Search manifest package names.
+  show            Show package metadata from manifest.
+  list-all        List all available package names.
+  list-installed  Show installed package from install stamp.`)
 }
 
 func listProviders(args []string) error {
@@ -143,10 +217,9 @@ func install(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	if fs.NArg() != 1 {
-		return fmt.Errorf("install expects exactly one package")
+	if fs.NArg() < 1 {
+		return fmt.Errorf("install expects at least one package")
 	}
-	pkg := fs.Arg(0)
 	if strings.TrimSpace(*prefix) == "" {
 		return fmt.Errorf("--prefix is required")
 	}
@@ -157,22 +230,24 @@ func install(args []string) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
-	var result pm.InstallResult
-	if pkg == pm.DevBaselinePackage {
-		result, err = pm.InstallDevBaseline(ctx, source, *prefix, *cacheDir)
-	} else {
-		result, err = pm.InstallAndroidTestBinary(ctx, source, pkg, *prefix, *cacheDir)
+	for _, pkg := range fs.Args() {
+		var result pm.InstallResult
+		if pkg == pm.DevBaselinePackage {
+			result, err = pm.InstallDevBaseline(ctx, source, *prefix, *cacheDir)
+		} else {
+			result, err = pm.InstallAndroidTestBinary(ctx, source, pkg, *prefix, *cacheDir)
+		}
+		if err != nil {
+			return err
+		}
+		fmt.Printf("installed=%s\n", result.Package)
+		fmt.Printf("prefix=%s\n", result.Prefix)
+		fmt.Printf("provider=%s\n", result.Provider)
+		fmt.Printf("version=%s\n", result.Version)
+		fmt.Printf("files=%d\n", result.FileCount)
+		fmt.Printf("dirs=%d\n", result.DirCount)
+		fmt.Printf("symlinks=%d\n", result.SymlinkCount)
 	}
-	if err != nil {
-		return err
-	}
-	fmt.Printf("installed=%s\n", result.Package)
-	fmt.Printf("prefix=%s\n", result.Prefix)
-	fmt.Printf("provider=%s\n", result.Provider)
-	fmt.Printf("version=%s\n", result.Version)
-	fmt.Printf("files=%d\n", result.FileCount)
-	fmt.Printf("dirs=%d\n", result.DirCount)
-	fmt.Printf("symlinks=%d\n", result.SymlinkCount)
 	return nil
 }
 
@@ -205,6 +280,81 @@ func listInstalled(prefix string, manifestErr error) error {
 		return fmt.Errorf("manifest unavailable (%v) and no install stamp at prefix %q: %w", manifestErr, prefix, err)
 	}
 	fmt.Println(stamp.Package)
+	return nil
+}
+
+func pkgListInstalled(args []string) error {
+	fs := commonFlagSet("pkg-list-installed")
+	prefix := fs.String("prefix", defaultPrefix(), "installed prefix")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	stamp, err := pm.LoadInstallStamp(*prefix)
+	if err != nil {
+		return fmt.Errorf("no install stamp at prefix %q: %w", *prefix, err)
+	}
+	fmt.Println(stamp.Package)
+	return nil
+}
+
+func pkgSearch(args []string) error {
+	fs := commonFlagSet("pkg-search")
+	manifestPath := fs.String("manifest", pm.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() != 1 {
+		return fmt.Errorf("pkg search expects exactly one pattern")
+	}
+	pattern := strings.ToLower(fs.Arg(0))
+	source, err := loadSource(*manifestPath)
+	if err != nil {
+		return err
+	}
+	for _, name := range pm.AvailablePackages(source) {
+		if strings.Contains(strings.ToLower(name), pattern) {
+			fmt.Println(name)
+		}
+	}
+	return nil
+}
+
+func pkgShow(args []string) error {
+	fs := commonFlagSet("pkg-show")
+	manifestPath := fs.String("manifest", pm.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() != 1 {
+		return fmt.Errorf("pkg show expects exactly one package")
+	}
+	name := fs.Arg(0)
+	source, err := loadSource(*manifestPath)
+	if err != nil {
+		return err
+	}
+	found := false
+	for _, pkg := range pm.AvailablePackages(source) {
+		if pkg == name {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return fmt.Errorf("package %q not found", name)
+	}
+	fmt.Printf("package=%s\n", name)
+	if name == pm.DevBaselinePackage {
+		fmt.Println("summary=Howl Android baseline prefix package")
+	}
+	for _, artifact := range source.Document.Artifacts {
+		if artifact.Name == name {
+			fmt.Printf("version=%s\n", artifact.Version)
+			fmt.Printf("provider=%s\n", artifact.Metadata["provider"])
+			fmt.Printf("kind=%s\n", artifact.Kind)
+			return nil
+		}
+	}
 	return nil
 }
 
