@@ -3,16 +3,11 @@ package androidprefix
 import "strings"
 
 // PrefixArchiveRuntimeSupportFiles returns the comma-separated
-// metadata.runtime_support_files value for android-prefix-archive manifests
-// produced by this repo (paths under RuntimeAliasDir used by fixed-width binary
-// rewrites for etc/ and htop support files).
+// metadata.runtime_support_files value for android-prefix-archive manifests.
+// The current Android prefix artifacts no longer require extra app-owned file
+// aliases for etc/ or htop support paths.
 func PrefixArchiveRuntimeSupportFiles() string {
-	return strings.Join([]string{
-		RuntimeAliasDir + "/b",
-		RuntimeAliasDir + "/p",
-		RuntimeAliasDir + "/h",
-		RuntimeAliasDir + "/hs",
-	}, ",")
+	return ""
 }
 
 // PrefixArchiveRuntimeSupportLinks returns the metadata.runtime_support_links
@@ -21,13 +16,8 @@ func PrefixArchiveRuntimeSupportFiles() string {
 // with rewriteBinaryUSRRootToBridge in deb.go.
 func PrefixArchiveRuntimeSupportLinks() string {
 	data := "/data/data/" + AppPackageName
-	userFiles := "/data/user/0/" + AppPackageName + "/files/usr"
 	parts := []string{
 		BinaryUSRBridgePath + "=>" + AppUSRPath,
-		RuntimeAliasDir + "/b=>" + userFiles + "/etc/bash.bashrc",
-		RuntimeAliasDir + "/p=>" + userFiles + "/etc/profile",
-		RuntimeAliasDir + "/h=>" + userFiles + "/etc/hosts",
-		RuntimeAliasDir + "/hs=>" + userFiles + "/var/htop/stat",
 		data + "/ul=>" + data + "/files/usr/lib",
 		data + "/ub=>" + data + "/files/usr/bin",
 		data + "/b=>" + data + "/files/usr/bin",

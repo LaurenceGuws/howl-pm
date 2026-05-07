@@ -18,10 +18,9 @@ import (
 
 const (
 	TermuxUSRPrefix = "data/data/com.termux/files/usr/"
-	AppUSRPrefix   = "usr/"
-	AppPackageName  = "uk.laurencegouws.zide"
+	AppUSRPrefix    = "usr/"
+	AppPackageName  = "howl.term"
 	AppUSRPath      = "/data/data/" + AppPackageName + "/files/usr"
-	RuntimeAliasDir = "/data/user/0/" + AppPackageName + "/t"
 	// BinaryUSRBridgePath replaces "/data/data/com.termux/files/usr" in non-text
 	// payloads (variable-length bytes.ReplaceAll). It must live under the app
 	// package directory so Android consumers can materialize it without a
@@ -273,36 +272,36 @@ func rewriteKnownBinaryTermuxPaths(payload []byte) ([]byte, int) {
 	}{
 		{
 			old: "/data/data/com.termux/files/usr/bin/sh",
-			new: "/data/data/uk.laurencegouws.zide/u/bsh",
+			new: "/data/data/howl.term/u/bsh",
 		},
 		{
 			old: "/data/data/com.termux/files/usr/etc/bash.bashrc",
-			new: RuntimeAliasDir + "/b",
+			new: AppUSRPath + "/etc/bash.bashrc",
 		},
 		{
 			old: "/data/data/com.termux/files/usr/etc/profile",
-			new: RuntimeAliasDir + "/p",
+			new: AppUSRPath + "/etc/profile",
 		},
 		{
 			old: "/data/data/com.termux/files/usr/etc/hosts",
-			new: RuntimeAliasDir + "/h",
+			new: AppUSRPath + "/etc/hosts",
 		},
 		{
 			old: "/data/data/com.termux/files/usr/var/htop/stat",
-			new: RuntimeAliasDir + "/hs",
+			new: AppUSRPath + "/var/htop/stat",
 		},
 		{
 			old: "RfPATH=/data/data/com.termux/files/usr/bin",
-			new: "RfPATH=/data/data/uk.laurencegouws.zide/b",
+			new: "RfPATH=/data/data/howl.term/b",
 		},
 		{
 			old:         "/data/data/com.termux/files/usr/lib",
-			new:         "/data/data/uk.laurencegouws.zide/ul",
+			new:         "/data/data/howl.term/ul",
 			cStringOnly: true,
 		},
 		{
 			old:         "/data/data/com.termux/files/usr/bin",
-			new:         "/data/data/uk.laurencegouws.zide/ub",
+			new:         "/data/data/howl.term/ub",
 			cStringOnly: true,
 		},
 	} {

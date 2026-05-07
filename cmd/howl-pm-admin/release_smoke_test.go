@@ -57,8 +57,8 @@ func TestApplyAndroidDevReleaseEditsValidates(t *testing.T) {
 			Size:    1,
 			Metadata: map[string]string{
 				"archive_root":          "usr",
-				"package_name":          "uk.laurencegouws.zide",
-				"prefix":                "/data/data/uk.laurencegouws.zide/files/usr",
+				"package_name":          "howl.term",
+				"prefix":                "/data/data/howl.term/files/usr",
 				"target_sdk":            "28",
 				"provider":              "termux-main",
 				"provider_role":         "android-dev-bootstrap",

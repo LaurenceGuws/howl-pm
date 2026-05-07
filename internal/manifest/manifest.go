@@ -59,8 +59,8 @@ func NewSkeleton(platform string, channel string) (Document, error) {
 			URL:     "TODO",
 			SHA256:  "TODO",
 			Metadata: map[string]string{
-				"package_name":          "uk.laurencegouws.zide",
-				"prefix":                "/data/data/uk.laurencegouws.zide/files/usr",
+				"package_name":          "howl.term",
+				"prefix":                "/data/data/howl.term/files/usr",
 				"target_sdk":            "28",
 				"provider":              "termux-main",
 				"provider_role":         "android-dev-bootstrap",

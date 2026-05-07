@@ -76,7 +76,7 @@ Examples:
   howl-pm doctor
   howl-pm list-providers
   howl-pm list-available
-  howl-pm install neovim --prefix /data/data/uk.laurencegouws.zide/files/usr
+  howl-pm install neovim --prefix /data/data/howl.term/files/usr
   howl-pm install neovim --manifest ./android-dev-prefix.release.manifest.json --prefix ./tmp/usr
 
 howl-pm is the product CLI surface. Provider/package internals stay behind the

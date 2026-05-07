@@ -687,8 +687,8 @@ func newAndroidPrefixManifest(
 		SHA256:  archiveStats.SHA256,
 		Size:    archiveStats.Size,
 		Metadata: map[string]string{
-			"package_name":                     "uk.laurencegouws.zide",
-			"prefix":                           "/data/data/uk.laurencegouws.zide/files/usr",
+			"package_name":                     "howl.term",
+			"prefix":                           "/data/data/howl.term/files/usr",
 			"archive_root":                     "usr",
 			"target_sdk":                       "28",
 			"provider":                         "termux-main",
@@ -883,7 +883,7 @@ func newAndroidDevManifest(
 			Size:     pkg.Size,
 			Metadata: metadata,
 			Limitations: []string{
-				"Payload is pinned upstream package data. Product archives must still prove uk.laurencegouws.zide prefix correctness.",
+				"Payload is pinned upstream package data. Product archives must still prove howl.term prefix correctness.",
 			},
 		})
 	}

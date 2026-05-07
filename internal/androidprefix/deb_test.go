@@ -38,7 +38,7 @@ func TestExtractDebUSRRewritesPrefixPaths(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := string(script); got != "/data/data/uk.laurencegouws.zide/files/usr/bin\n" {
+	if got := string(script); got != "/data/data/howl.term/files/usr/bin\n" {
 		t.Fatalf("unexpected rewritten file: %q", got)
 	}
 	link, err := os.Readlink(filepath.Join(stagingRoot, "usr/bin/sample-link"))
@@ -82,7 +82,7 @@ func TestExtractDebUSRRewritesKnownBinaryTermuxPaths(t *testing.T) {
 	if bytes.Contains(rewritten, []byte("/data/data/com.termux/files/usr/var/htop/stat")) {
 		t.Fatalf("old htop path remained in binary payload: %q", rewritten)
 	}
-	if !bytes.Contains(rewritten, []byte("/data/user/0/uk.laurencegouws.zide/t/hs")) {
+	if !bytes.Contains(rewritten, []byte("/data/data/howl.term/files/usr/var/htop/stat")) {
 		t.Fatalf("new htop path missing from binary payload: %q", rewritten)
 	}
 }
@@ -144,7 +144,7 @@ func TestExtractDebUSRBinaryKnownRewriteLeavesUnknownRootAsHit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Contains(out, []byte("/data/user/0/uk.laurencegouws.zide/t/hs")) {
+	if !bytes.Contains(out, []byte("/data/data/howl.term/files/usr/var/htop/stat")) {
 		t.Fatalf("htop rewrite missing: %q", out)
 	}
 	if !bytes.Contains(out, []byte("/data/data/com.termux/files/usr/lib/extra.so")) {
@@ -155,7 +155,7 @@ func TestExtractDebUSRBinaryKnownRewriteLeavesUnknownRootAsHit(t *testing.T) {
 func TestReplaceFixedWidthCStringCStringOnlySkipsExtendedPath(t *testing.T) {
 	payload := []byte("/data/data/com.termux/files/usr/lib/extra\x00")
 	old := []byte("/data/data/com.termux/files/usr/lib")
-	newPath := []byte("/data/data/uk.laurencegouws.zide/ul")
+	newPath := []byte("/data/data/howl.term/ul")
 	got, changed := replaceFixedWidthCString(append([]byte(nil), payload...), old, newPath, true)
 	if changed {
 		t.Fatal("expected no rewrite when '/' follows usr/lib")
