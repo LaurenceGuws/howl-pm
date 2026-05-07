@@ -17,10 +17,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"sort"
 	"strings"
 	"time"
 
+	"github.com/howl/howl-pm/internal/androidprefix"
+	"github.com/howl/howl-pm/internal/androidrepo"
 	"github.com/howl/howl-pm/internal/manifest"
 )
 
@@ -52,15 +53,27 @@ type InstallResult struct {
 }
 
 type InstallStamp struct {
-	InstalledAt string `json:"installed_at"`
+	InstalledAt string                `json:"installed_at"`
+	Package     string                `json:"package,omitempty"`
+	Manifest    string                `json:"manifest"`
+	Artifact    string                `json:"artifact,omitempty"`
+	Version     string                `json:"version,omitempty"`
+	Provider    string                `json:"provider,omitempty"`
+	Files       int                   `json:"files,omitempty"`
+	Dirs        int                   `json:"dirs,omitempty"`
+	Symlinks    int                   `json:"symlinks,omitempty"`
+	Packages    []InstallStampPackage `json:"packages,omitempty"`
+}
+
+type InstallStampPackage struct {
 	Package     string `json:"package"`
-	Manifest    string `json:"manifest"`
 	Artifact    string `json:"artifact"`
 	Version     string `json:"version"`
 	Provider    string `json:"provider"`
 	Files       int    `json:"files"`
 	Dirs        int    `json:"dirs"`
 	Symlinks    int    `json:"symlinks"`
+	InstalledAt string `json:"installed_at,omitempty"`
 }
 
 func LoadSource(ctx context.Context, location string) (Source, error) {
@@ -89,32 +102,14 @@ func LoadSource(ctx context.Context, location string) (Source, error) {
 	return Source{Location: location, Document: doc}, nil
 }
 
-func AvailablePackages(source Source) []string {
-	seen := map[string]bool{}
-	var packages []string
-	for _, artifact := range source.Document.Artifacts {
-		if artifact.Kind != "android-termux-deb" {
-			continue
-		}
-		name := artifact.Metadata["package"]
-		if name == "" || seen[name] {
-			continue
-		}
-		seen[name] = true
-		packages = append(packages, name)
-	}
-	sort.Strings(packages)
-	if AndroidCatalogActive() {
-		tb := testBinaryPackageNames(source)
-		sort.Strings(tb)
-		packages = append(packages, tb...)
-	}
-	return packages
-}
-
 func artifactCacheSuffix(artifact manifest.Artifact) string {
-	if artifact.Kind == "android-test-binary" {
+	switch artifact.Kind {
+	case "android-test-binary":
 		return ".bin"
+	case "android-termux-deb":
+		return ".deb"
+	case "android-termux-package-index", "howl-package-entry":
+		return ".json"
 	}
 	return ".tar.gz"
 }
@@ -131,7 +126,19 @@ func LoadInstallStamp(prefix string) (InstallStamp, error) {
 	if err := json.Unmarshal(payload, &stamp); err != nil {
 		return InstallStamp{}, err
 	}
-	if stamp.Package == "" {
+	if len(stamp.Packages) == 0 && stamp.Package != "" {
+		stamp.Packages = []InstallStampPackage{{
+			Package:     stamp.Package,
+			Artifact:    stamp.Artifact,
+			Version:     stamp.Version,
+			Provider:    stamp.Provider,
+			Files:       stamp.Files,
+			Dirs:        stamp.Dirs,
+			Symlinks:    stamp.Symlinks,
+			InstalledAt: stamp.InstalledAt,
+		}}
+	}
+	if len(stamp.Packages) == 0 {
 		return InstallStamp{}, errors.New("install stamp missing package")
 	}
 	return stamp, nil
@@ -177,7 +184,16 @@ func InstallDevBaseline(ctx context.Context, source Source, prefix string, cache
 	if err != nil {
 		return InstallResult{}, err
 	}
-	if err := writeInstallStamp(prefix, source, artifact.Artifact, stats); err != nil {
+	if err := writeInstallStamp(prefix, source, InstallStampPackage{
+		Package:     DevBaselinePackage,
+		Artifact:    artifact.Artifact.Name,
+		Version:     artifact.Artifact.Version,
+		Provider:    artifact.Artifact.Metadata["provider"],
+		Files:       stats.files,
+		Dirs:        stats.dirs,
+		Symlinks:    stats.symlinks,
+		InstalledAt: time.Now().UTC().Format(time.RFC3339),
+	}); err != nil {
 		return InstallResult{}, err
 	}
 	return InstallResult{
@@ -190,6 +206,154 @@ func InstallDevBaseline(ctx context.Context, source Source, prefix string, cache
 		FileCount:     stats.files,
 		DirCount:      stats.dirs,
 		SymlinkCount:  stats.symlinks,
+	}, nil
+}
+
+func InstallPackage(ctx context.Context, source Source, packageName string, prefix string, cacheDir string) (InstallResult, error) {
+	if entry, ok := FindPackage(source, packageName, PrivateInstallEnabled()); ok {
+		switch entry.InstallStrategy {
+		case InstallStrategyPrefixArchive:
+			return InstallPackageEntryPrefixArchive(ctx, source, entry, prefix, cacheDir)
+		case InstallStrategyTermuxPackage:
+			return InstallTermuxPackage(ctx, source, entry, prefix, cacheDir)
+		case InstallStrategyAndroidTestFile:
+			return InstallAndroidTestBinary(ctx, source, entry.ArtifactRef, prefix, cacheDir)
+		default:
+			return InstallResult{}, fmt.Errorf("unsupported install strategy %q for %s", entry.InstallStrategy, packageName)
+		}
+	}
+	return InstallAndroidTestBinary(ctx, source, packageName, prefix, cacheDir)
+}
+
+func InstallPackageEntryPrefixArchive(ctx context.Context, source Source, entry PackageEntry, prefix string, cacheDir string) (InstallResult, error) {
+	artifact, err := packageEntryArtifact(source, entry.ArtifactRef)
+	if err != nil {
+		return InstallResult{}, err
+	}
+	artifactURL, err := ResolveURL(source.Location, artifact.URL)
+	if err != nil {
+		return InstallResult{}, err
+	}
+	archivePath, err := FetchArtifact(ctx, artifact, artifactURL, cacheDir)
+	if err != nil {
+		return InstallResult{}, err
+	}
+	stats, err := ExtractUSRToPrefix(archivePath, prefix)
+	if err != nil {
+		return InstallResult{}, err
+	}
+	stampPkg := InstallStampPackage{
+		Package:     entry.Name,
+		Artifact:    artifact.Name,
+		Version:     artifact.Version,
+		Provider:    entry.Provider,
+		Files:       stats.files,
+		Dirs:        stats.dirs,
+		Symlinks:    stats.symlinks,
+		InstalledAt: time.Now().UTC().Format(time.RFC3339),
+	}
+	if err := writeInstallStamp(prefix, source, stampPkg); err != nil {
+		return InstallResult{}, err
+	}
+	return InstallResult{
+		Package:       entry.Name,
+		Prefix:        prefix,
+		Manifest:      source.Location,
+		Provider:      entry.Provider,
+		Version:       artifact.Version,
+		InstalledPath: archivePath,
+		FileCount:     stats.files,
+		DirCount:      stats.dirs,
+		SymlinkCount:  stats.symlinks,
+	}, nil
+}
+
+func InstallTermuxPackage(ctx context.Context, source Source, entry PackageEntry, prefix string, cacheDir string) (InstallResult, error) {
+	indexArtifact, err := packageEntryArtifact(source, entry.SourceIndexRef)
+	if err != nil {
+		return InstallResult{}, err
+	}
+	index, err := loadIndexFromArtifact(ctx, source, indexArtifact)
+	if err != nil {
+		return InstallResult{}, err
+	}
+	rootName := entry.SourcePackage
+	if rootName == "" {
+		rootName = entry.Name
+	}
+	packages, err := androidrepo.ResolveClosure(index, []string{rootName})
+	if err != nil {
+		return InstallResult{}, err
+	}
+	baseURL := indexArtifact.Metadata["base_url"]
+	if baseURL == "" {
+		return InstallResult{}, fmt.Errorf("index artifact %q missing base_url metadata", indexArtifact.Name)
+	}
+
+	stagingRoot, err := os.MkdirTemp("", "howl-pm-termux-stage-*")
+	if err != nil {
+		return InstallResult{}, err
+	}
+	defer os.RemoveAll(stagingRoot)
+
+	var totals extractStats
+	var lastPath string
+	for _, pkg := range packages {
+		packageURL, err := androidrepo.AbsolutePackageURL(baseURL, pkg.Filename)
+		if err != nil {
+			return InstallResult{}, err
+		}
+		artifact := manifest.Artifact{
+			Name:    "termux-main/" + pkg.Name,
+			Kind:    "android-termux-deb",
+			Version: pkg.Version,
+			URL:     packageURL,
+			SHA256:  pkg.SHA256,
+			Size:    pkg.Size,
+			Metadata: map[string]string{
+				"provider":              entry.Provider,
+				"provider_role":         entry.ProviderRole,
+				"provider_platform":     source.Document.Platform,
+				"provider_architecture": indexArtifact.Metadata["provider_architecture"],
+				"package":               pkg.Name,
+			},
+		}
+		lastPath, err = FetchArtifact(ctx, artifact, packageURL, cacheDir)
+		if err != nil {
+			return InstallResult{}, err
+		}
+		stats, err := installDebIntoPrefix(lastPath, stagingRoot, prefix)
+		if err != nil {
+			return InstallResult{}, err
+		}
+		totals.files += stats.files
+		totals.dirs += stats.dirs
+		totals.symlinks += stats.symlinks
+	}
+
+	stampPkg := InstallStampPackage{
+		Package:     entry.Name,
+		Artifact:    entry.SourceIndexRef,
+		Version:     entry.Version,
+		Provider:    entry.Provider,
+		Files:       totals.files,
+		Dirs:        totals.dirs,
+		Symlinks:    totals.symlinks,
+		InstalledAt: time.Now().UTC().Format(time.RFC3339),
+	}
+	if err := writeInstallStamp(prefix, source, stampPkg); err != nil {
+		return InstallResult{}, err
+	}
+	return InstallResult{
+		Package:       entry.Name,
+		Prefix:        prefix,
+		Manifest:      source.Location,
+		Provider:      entry.Provider,
+		Version:       entry.Version,
+		InstalledPath: lastPath,
+		FileCount:     totals.files,
+		DirCount:      totals.dirs,
+		SymlinkCount:  totals.symlinks,
 	}, nil
 }
 
@@ -485,17 +649,134 @@ func safeJoin(root string, relative string) (string, error) {
 	return target, nil
 }
 
-func writeInstallStamp(prefix string, source Source, artifact manifest.Artifact, stats extractStats) error {
+func loadIndexFromArtifact(ctx context.Context, source Source, artifact manifest.Artifact) (androidrepo.Index, error) {
+	artifactURL, err := ResolveURL(source.Location, artifact.URL)
+	if err != nil {
+		return androidrepo.Index{}, err
+	}
+	var payload []byte
+	if IsURL(artifactURL) {
+		payload, err = readURL(ctx, artifactURL)
+	} else {
+		payload, err = os.ReadFile(filepath.Clean(artifactURL))
+	}
+	if err != nil {
+		return androidrepo.Index{}, err
+	}
+	if artifact.Size >= 0 && int64(len(payload)) != artifact.Size {
+		return androidrepo.Index{}, fmt.Errorf("index artifact size mismatch for %s", artifact.Name)
+	}
+	if got := androidrepo.HashBytes(payload); got != artifact.SHA256 {
+		return androidrepo.Index{}, fmt.Errorf("index artifact sha256 mismatch for %s", artifact.Name)
+	}
+	return androidrepo.ParseIndex(strings.NewReader(string(payload)))
+}
+
+func installDebIntoPrefix(debPath string, stagingRoot string, prefix string) (extractStats, error) {
+	if err := os.RemoveAll(stagingRoot); err != nil {
+		return extractStats{}, err
+	}
+	if err := os.MkdirAll(stagingRoot, 0o755); err != nil {
+		return extractStats{}, err
+	}
+	extracted, err := androidprefix.ExtractDebUSR(debPath, stagingRoot)
+	if err != nil {
+		return extractStats{}, err
+	}
+	merged, err := mergeTree(filepath.Join(stagingRoot, "usr"), prefix)
+	if err != nil {
+		return extractStats{}, err
+	}
+	_ = extracted
+	return merged, nil
+}
+
+func mergeTree(sourceRoot string, targetRoot string) (extractStats, error) {
+	var stats extractStats
+	if err := os.MkdirAll(targetRoot, 0o755); err != nil {
+		return stats, err
+	}
+	err := filepath.Walk(sourceRoot, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if path == sourceRoot {
+			return nil
+		}
+		relative, err := filepath.Rel(sourceRoot, path)
+		if err != nil {
+			return err
+		}
+		target, err := safeJoin(targetRoot, relative)
+		if err != nil {
+			return err
+		}
+		mode := info.Mode()
+		switch {
+		case mode.IsDir():
+			if err := os.MkdirAll(target, mode.Perm()); err != nil {
+				return err
+			}
+			stats.dirs++
+		case mode&os.ModeSymlink != 0:
+			linkname, err := os.Readlink(path)
+			if err != nil {
+				return err
+			}
+			if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+				return err
+			}
+			_ = os.Remove(target)
+			if err := os.Symlink(linkname, target); err != nil {
+				return err
+			}
+			stats.symlinks++
+		case mode.IsRegular():
+			if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+				return err
+			}
+			src, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			err = writeRegularFile(target, src, mode.Perm())
+			_ = src.Close()
+			if err != nil {
+				return err
+			}
+			stats.files++
+		}
+		return nil
+	})
+	return stats, err
+}
+
+func writeInstallStamp(prefix string, source Source, pkg InstallStampPackage) error {
 	stamp := InstallStamp{
-		InstalledAt: time.Now().UTC().Format(time.RFC3339),
-		Package:     DevBaselinePackage,
+		InstalledAt: pkg.InstalledAt,
+		Package:     pkg.Package,
 		Manifest:    source.Location,
-		Artifact:    artifact.Name,
-		Version:     artifact.Version,
-		Provider:    artifact.Metadata["provider"],
-		Files:       stats.files,
-		Dirs:        stats.dirs,
-		Symlinks:    stats.symlinks,
+		Artifact:    pkg.Artifact,
+		Version:     pkg.Version,
+		Provider:    pkg.Provider,
+		Files:       pkg.Files,
+		Dirs:        pkg.Dirs,
+		Symlinks:    pkg.Symlinks,
+	}
+	existing, err := LoadInstallStamp(prefix)
+	if err == nil {
+		stamp.Packages = append(stamp.Packages, existing.Packages...)
+	}
+	replaced := false
+	for i := range stamp.Packages {
+		if stamp.Packages[i].Package == pkg.Package {
+			stamp.Packages[i] = pkg
+			replaced = true
+			break
+		}
+	}
+	if !replaced {
+		stamp.Packages = append(stamp.Packages, pkg)
 	}
 	payload, err := json.MarshalIndent(stamp, "", "  ")
 	if err != nil {

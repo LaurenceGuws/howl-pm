@@ -150,6 +150,11 @@ func (doc Document) Validate() error {
 				return fmt.Errorf("artifact[%d].metadata.install_relative_path: %w", i, err)
 			}
 		}
+		if artifact.Kind == "howl-package-entry" {
+			if err := validatePackageEntryMetadata(i, artifact); err != nil {
+				return err
+			}
+		}
 		if isProviderDerivedKind(artifact.Kind) {
 			if err := validateProviderMetadata(i, artifact); err != nil {
 				return err
@@ -175,7 +180,7 @@ func validateInstallRelativePath(rel string) error {
 
 func isProviderDerivedKind(kind string) bool {
 	switch kind {
-	case "android-prefix-archive", "android-termux-package-index", "android-termux-deb", "android-test-binary":
+	case "android-prefix-archive", "android-termux-package-index", "android-termux-deb", "android-test-binary", "howl-package-entry":
 		return true
 	default:
 		return false
@@ -193,6 +198,37 @@ func validateProviderMetadata(index int, artifact Artifact) error {
 		if artifact.Metadata[key] == "" {
 			return fmt.Errorf("artifact[%d].metadata.%s must not be empty for %s", index, key, artifact.Kind)
 		}
+	}
+	return nil
+}
+
+func validatePackageEntryMetadata(index int, artifact Artifact) error {
+	visibility := artifact.Metadata["visibility"]
+	switch visibility {
+	case "public", "private":
+	default:
+		return fmt.Errorf("artifact[%d].metadata.visibility must be public or private for howl-package-entry", index)
+	}
+
+	strategy := artifact.Metadata["install_strategy"]
+	switch strategy {
+	case "prefix-archive":
+		if artifact.Metadata["artifact_ref"] == "" {
+			return fmt.Errorf("artifact[%d].metadata.artifact_ref must not be empty for prefix-archive package entry", index)
+		}
+	case "termux-package":
+		if artifact.Metadata["source_package"] == "" {
+			return fmt.Errorf("artifact[%d].metadata.source_package must not be empty for termux-package package entry", index)
+		}
+		if artifact.Metadata["source_index_ref"] == "" {
+			return fmt.Errorf("artifact[%d].metadata.source_index_ref must not be empty for termux-package package entry", index)
+		}
+	case "android-test-binary":
+		if artifact.Metadata["artifact_ref"] == "" {
+			return fmt.Errorf("artifact[%d].metadata.artifact_ref must not be empty for android-test-binary package entry", index)
+		}
+	default:
+		return fmt.Errorf("artifact[%d].metadata.install_strategy %q is unsupported for howl-package-entry", index, strategy)
 	}
 	return nil
 }

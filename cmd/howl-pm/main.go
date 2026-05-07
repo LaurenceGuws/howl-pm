@@ -61,14 +61,14 @@ Commands:
   pkg             Termux-style package UX (update/install/upgrade/search/show/remove).
   doctor          Validate the configured package manifest and print provider info.
   list-providers  List public provider ids available to the CLI surface.
-  list-available  List packages/groups available from the manifest.
-  install         Install a supported package/group into a prefix.
+  list-available  List public packages available from the manifest catalog.
+  install         Install a catalog package or private bootstrap profile into a prefix.
   version         Print the tool version.
   help            Show this help.
 
 Android catalog (HOWL_PM_HOST_PLATFORM=android):
-  android-test-binary artifacts from the manifest are listed and installable as
-  additional package names (host-side runs keep this catalog off by default).
+  android-test-binary manifest payloads are installable for Android-scoped smoke
+  and maintenance flows. Private bootstrap profiles require HOWL_PM_ALLOW_PRIVATE=1.
 
 Examples:
   howl-pm pkg update
@@ -76,8 +76,8 @@ Examples:
   howl-pm doctor
   howl-pm list-providers
   howl-pm list-available
-  howl-pm install bash --prefix /data/data/uk.laurencegouws.zide/files/usr
-  howl-pm install bash --manifest ./android-dev-prefix.release.manifest.json --prefix ./tmp/usr
+  howl-pm install neovim --prefix /data/data/uk.laurencegouws.zide/files/usr
+  howl-pm install neovim --manifest ./android-dev-prefix.release.manifest.json --prefix ./tmp/usr
 
 howl-pm is the product CLI surface. Provider/package internals stay behind the
 manifest api.`)
@@ -143,7 +143,7 @@ Commands:
   search          Search manifest package names.
   show            Show package metadata from manifest.
   list-all        List all available package names.
-  list-installed  Show installed package from install stamp.`)
+  list-installed  Show installed packages from install stamp.`)
 }
 
 func listProviders(args []string) error {
@@ -228,12 +228,7 @@ func install(args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 	for _, pkg := range fs.Args() {
-		var result pm.InstallResult
-		if pkg == pm.DevBaselinePackage {
-			result, err = pm.InstallDevBaseline(ctx, source, *prefix, *cacheDir)
-		} else {
-			result, err = pm.InstallAndroidTestBinary(ctx, source, pkg, *prefix, *cacheDir)
-		}
+		result, err := pm.InstallPackage(ctx, source, pkg, *prefix, *cacheDir)
 		if err != nil {
 			return err
 		}
@@ -265,6 +260,7 @@ func doctorInstalled(prefix string, manifestErr error) error {
 	fmt.Printf("version=%s\n", stamp.Version)
 	fmt.Printf("provider=%s\n", stamp.Provider)
 	fmt.Printf("prefix=%s\n", prefix)
+	fmt.Printf("installed_packages=%d\n", len(stamp.Packages))
 	fmt.Printf("files=%d\n", stamp.Files)
 	fmt.Printf("symlinks=%d\n", stamp.Symlinks)
 	fmt.Println("ok=true")
@@ -276,7 +272,9 @@ func listInstalled(prefix string, manifestErr error) error {
 	if err != nil {
 		return fmt.Errorf("manifest unavailable (%v) and no install stamp at prefix %q: %w", manifestErr, prefix, err)
 	}
-	fmt.Println(stamp.Package)
+	for _, pkg := range stamp.Packages {
+		fmt.Println(pkg.Package)
+	}
 	return nil
 }
 
@@ -290,7 +288,9 @@ func pkgListInstalled(args []string) error {
 	if err != nil {
 		return fmt.Errorf("no install stamp at prefix %q: %w", *prefix, err)
 	}
-	fmt.Println(stamp.Package)
+	for _, pkg := range stamp.Packages {
+		fmt.Println(pkg.Package)
+	}
 	return nil
 }
 
@@ -308,9 +308,24 @@ func pkgSearch(args []string) error {
 	if err != nil {
 		return err
 	}
-	for _, name := range pm.AvailablePackages(source) {
-		if strings.Contains(strings.ToLower(name), pattern) {
-			fmt.Println(name)
+	seen := map[string]bool{}
+	for _, entry := range pm.PackageCatalog(source) {
+		if entry.Visibility != pm.PackageVisibilityPublic {
+			continue
+		}
+		if strings.Contains(strings.ToLower(entry.Name), pattern) || strings.Contains(strings.ToLower(entry.Summary), pattern) {
+			seen[entry.Name] = true
+			fmt.Println(entry.Name)
+		}
+	}
+	if pm.AndroidCatalogActive() {
+		for _, name := range pm.AvailablePackages(source) {
+			if seen[name] {
+				continue
+			}
+			if strings.Contains(strings.ToLower(name), pattern) {
+				fmt.Println(name)
+			}
 		}
 	}
 	return nil
@@ -330,26 +345,36 @@ func pkgShow(args []string) error {
 	if err != nil {
 		return err
 	}
-	found := false
-	for _, pkg := range pm.AvailablePackages(source) {
-		if pkg == name {
-			found = true
-			break
+	entry, found := pm.FindPackage(source, name, false)
+	if found {
+		fmt.Printf("package=%s\n", entry.Name)
+		fmt.Printf("version=%s\n", entry.Version)
+		fmt.Printf("provider=%s\n", entry.Provider)
+		fmt.Printf("visibility=%s\n", entry.Visibility)
+		fmt.Printf("strategy=%s\n", entry.InstallStrategy)
+		if entry.Summary != "" {
+			fmt.Printf("summary=%s\n", entry.Summary)
 		}
+		if entry.Depends != "" {
+			fmt.Printf("depends=%s\n", entry.Depends)
+		}
+		if entry.PreDepends != "" {
+			fmt.Printf("pre_depends=%s\n", entry.PreDepends)
+		}
+		return nil
 	}
-	if !found {
-		return fmt.Errorf("package %q not found", name)
-	}
-	fmt.Printf("package=%s\n", name)
 	for _, artifact := range source.Document.Artifacts {
-		if artifact.Name == name {
+		if artifact.Kind == "android-test-binary" && artifact.Name == name && pm.AndroidCatalogActive() {
+			fmt.Printf("package=%s\n", artifact.Name)
 			fmt.Printf("version=%s\n", artifact.Version)
 			fmt.Printf("provider=%s\n", artifact.Metadata["provider"])
-			fmt.Printf("kind=%s\n", artifact.Kind)
+			fmt.Printf("visibility=android-host\n")
+			fmt.Printf("strategy=android-test-binary\n")
+			fmt.Printf("path=%s\n", artifact.Metadata["install_relative_path"])
 			return nil
 		}
 	}
-	return nil
+	return fmt.Errorf("package %q not found", name)
 }
 
 func defaultPrefix() string {

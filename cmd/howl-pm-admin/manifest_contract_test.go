@@ -5,10 +5,12 @@ import (
 	"testing"
 
 	"github.com/howl/howl-pm/internal/androidprefix"
+	"github.com/howl/howl-pm/internal/manifest"
 )
 
 func TestNewAndroidPrefixManifestRuntimeSupportMetadataMatchesAuthority(t *testing.T) {
 	doc := newAndroidPrefixManifest(
+		manifest.Document{},
 		"dev",
 		"dist/howl-android-dev-prefix.tar.gz",
 		androidprefix.ArchiveStats{
@@ -21,7 +23,7 @@ func TestNewAndroidPrefixManifestRuntimeSupportMetadataMatchesAuthority(t *testi
 		strings.Repeat("b", 64),
 		prefixAudit{},
 	)
-	md := doc.Artifacts[0].Metadata
+	md := doc.Artifacts[1].Metadata
 	if got, want := md["runtime_support_links"], androidprefix.PrefixArchiveRuntimeSupportLinks(); got != want {
 		t.Fatalf("runtime_support_links mismatch\ngot:  %s\nwant: %s", got, want)
 	}

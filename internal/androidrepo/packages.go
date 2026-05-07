@@ -28,6 +28,7 @@ type Package struct {
 	SHA256       string
 	Depends      string
 	PreDepends   string
+	Description  string
 }
 
 type Index struct {
@@ -187,6 +188,7 @@ func packageFromFields(fields map[string]string) (Package, error) {
 		SHA256:       fields["SHA256"],
 		Depends:      fields["Depends"],
 		PreDepends:   fields["Pre-Depends"],
+		Description:  fields["Description"],
 	}
 	if pkg.Version == "" {
 		return Package{}, fmt.Errorf("%s: missing Version", name)

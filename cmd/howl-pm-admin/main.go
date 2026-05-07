@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -22,6 +23,8 @@ import (
 )
 
 const version = "0.1.0-dev"
+
+const defaultOwnedPackagesCSV = "bash,coreutils,diffutils,findutils,gawk,grep,gzip,less,ncurses,readline,sed,tar,which,xz-utils,zlib"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -101,6 +104,7 @@ func androidDevManifest(args []string) error {
 	indexURL := fs.String("index-url", androidrepo.DefaultIndexURL, "Android package index URL")
 	baseURL := fs.String("base-url", androidrepo.DefaultBaseURL, "base URL for package filenames")
 	roots := fs.String("packages", "bash,neovim,git,ripgrep,htop,gotop", "comma-separated root packages for the dev channel")
+	ownedPackages := fs.String("owned-packages", defaultOwnedPackagesCSV, "comma-separated app-owned shell/runtime tooling hidden from the public CLI catalog")
 	refresh := fs.Bool("refresh", false, "refresh the cached package index")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -118,12 +122,13 @@ func androidDevManifest(args []string) error {
 		return err
 	}
 	rootPackages := splitCSV(*roots)
+	ownedPackageNames := splitCSV(*ownedPackages)
 	packages, err := androidrepo.ResolveClosure(index, rootPackages)
 	if err != nil {
 		return err
 	}
 
-	doc, err := newAndroidDevManifest(*channel, *indexURL, *baseURL, indexBytes, packages, rootPackages)
+	doc, err := newAndroidDevManifest(*channel, *indexURL, *baseURL, indexBytes, index, packages, rootPackages, ownedPackageNames)
 	if err != nil {
 		return err
 	}
@@ -346,7 +351,7 @@ func androidPrefixArchive(args []string) error {
 		return err
 	}
 
-	archiveDoc := newAndroidPrefixManifest(sourceDoc.Channel, *out, archiveStats, sourceHash, audit)
+	archiveDoc := newAndroidPrefixManifest(sourceDoc, sourceDoc.Channel, *out, archiveStats, sourceHash, audit)
 	if err := writeManifest(*outManifest, archiveDoc); err != nil {
 		return err
 	}
@@ -627,6 +632,16 @@ func writeBundledPMInstallStamp(stagingRoot string, manifestPath string, sourceM
 		"files":                   audit.ExtractedFiles,
 		"dirs":                    audit.ExtractedDirs,
 		"symlinks":                audit.ExtractedSymlinks,
+		"packages": []map[string]any{{
+			"package":      "dev-baseline",
+			"artifact":     "howl-android-dev-prefix",
+			"version":      "source-sha256-" + sourceManifestSHA256[:12],
+			"provider":     "termux-main",
+			"files":        audit.ExtractedFiles,
+			"dirs":         audit.ExtractedDirs,
+			"symlinks":     audit.ExtractedSymlinks,
+			"installed_at": "archive-build",
+		}},
 	}
 	payload, err := json.MarshalIndent(stamp, "", "  ")
 	if err != nil {
@@ -640,56 +655,81 @@ func writeBundledPMInstallStamp(stagingRoot string, manifestPath string, sourceM
 }
 
 func newAndroidPrefixManifest(
+	sourceDoc manifest.Document,
 	channel string,
 	archivePath string,
 	archiveStats androidprefix.ArchiveStats,
 	sourceManifestSHA256 string,
 	audit prefixAudit,
 ) manifest.Document {
+	artifacts := []manifest.Artifact{{
+		Name:    "dev-baseline",
+		Kind:    "howl-package-entry",
+		Version: "sha256-" + archiveStats.SHA256[:12],
+		URL:     "pkg://dev-baseline",
+		SHA256:  archiveStats.SHA256,
+		Size:    archiveStats.Size,
+		Metadata: map[string]string{
+			"provider":              "android-userland",
+			"provider_role":         "bootstrap-profile",
+			"provider_platform":     "android",
+			"provider_architecture": "aarch64",
+			"visibility":            "private",
+			"install_strategy":      "prefix-archive",
+			"artifact_ref":          "howl-android-dev-prefix",
+			"summary":               "App-owned baseline shell and runtime profile.",
+		},
+	}, {
+		Name:    "howl-android-dev-prefix",
+		Kind:    "android-prefix-archive",
+		Version: "sha256-" + archiveStats.SHA256[:12],
+		URL:     filepath.ToSlash(archivePath),
+		SHA256:  archiveStats.SHA256,
+		Size:    archiveStats.Size,
+		Metadata: map[string]string{
+			"package_name":                     "uk.laurencegouws.zide",
+			"prefix":                           "/data/data/uk.laurencegouws.zide/files/usr",
+			"archive_root":                     "usr",
+			"target_sdk":                       "28",
+			"provider":                         "termux-main",
+			"provider_role":                    "android-dev-bootstrap",
+			"provider_platform":                "android",
+			"provider_architecture":            "aarch64",
+			"source_manifest_sha256":           sourceManifestSHA256,
+			"source_package_count":             fmt.Sprintf("%d", audit.PackageCount),
+			"hardcoded_termux_hits":            fmt.Sprintf("%d", len(audit.HardcodedTermuxHits)),
+			"hardcoded_termux_policy":          audit.HardcodedPolicy,
+			"text_rewrites":                    fmt.Sprintf("%d", audit.TextRewrites),
+			"binary_rewrites":                  fmt.Sprintf("%d", audit.BinaryRewrites),
+			"runtime_support_files":            androidprefix.PrefixArchiveRuntimeSupportFiles(),
+			"runtime_support_links":            androidprefix.PrefixArchiveRuntimeSupportLinks(),
+			"removed_termux_prefixed_binaries": fmt.Sprintf("%d", audit.RemovedTermuxBinaries),
+			"extracted_regular_files":          fmt.Sprintf("%d", audit.ExtractedFiles),
+			"extracted_symlinks":               fmt.Sprintf("%d", audit.ExtractedSymlinks),
+			"archive_regular_files":            fmt.Sprintf("%d", archiveStats.Files),
+			"archive_symlinks":                 fmt.Sprintf("%d", archiveStats.Symlinks),
+			"howl_pm_cli":                      "included",
+		},
+		Limitations: []string{
+			"Development prefix archive for Android terminal bringup.",
+			"Generated from pinned upstream package payloads; product channels must review the audit before release.",
+		},
+	}}
+	for _, artifact := range sourceDoc.Artifacts {
+		if artifact.Kind == "android-termux-package-index" || artifact.Kind == "howl-package-entry" {
+			artifacts = append(artifacts, artifact)
+		}
+	}
 	return manifest.Document{
 		SchemaVersion: manifest.SchemaVersion,
 		Project:       "howl-pm",
 		Platform:      "android",
 		Channel:       channel,
-		Artifacts: []manifest.Artifact{{
-			Name:    "howl-android-dev-prefix",
-			Kind:    "android-prefix-archive",
-			Version: "sha256-" + archiveStats.SHA256[:12],
-			URL:     filepath.ToSlash(archivePath),
-			SHA256:  archiveStats.SHA256,
-			Size:    archiveStats.Size,
-			Metadata: map[string]string{
-				"package_name":                     "uk.laurencegouws.zide",
-				"prefix":                           "/data/data/uk.laurencegouws.zide/files/usr",
-				"archive_root":                     "usr",
-				"target_sdk":                       "28",
-				"provider":                         "termux-main",
-				"provider_role":                    "android-dev-bootstrap",
-				"provider_platform":                "android",
-				"provider_architecture":            "aarch64",
-				"source_manifest_sha256":           sourceManifestSHA256,
-				"source_package_count":             fmt.Sprintf("%d", audit.PackageCount),
-				"hardcoded_termux_hits":            fmt.Sprintf("%d", len(audit.HardcodedTermuxHits)),
-				"hardcoded_termux_policy":          audit.HardcodedPolicy,
-				"text_rewrites":                    fmt.Sprintf("%d", audit.TextRewrites),
-				"binary_rewrites":                  fmt.Sprintf("%d", audit.BinaryRewrites),
-				"runtime_support_files":            androidprefix.PrefixArchiveRuntimeSupportFiles(),
-				"runtime_support_links":            androidprefix.PrefixArchiveRuntimeSupportLinks(),
-				"removed_termux_prefixed_binaries": fmt.Sprintf("%d", audit.RemovedTermuxBinaries),
-				"extracted_regular_files":          fmt.Sprintf("%d", audit.ExtractedFiles),
-				"extracted_symlinks":               fmt.Sprintf("%d", audit.ExtractedSymlinks),
-				"archive_regular_files":            fmt.Sprintf("%d", archiveStats.Files),
-				"archive_symlinks":                 fmt.Sprintf("%d", archiveStats.Symlinks),
-				"howl_pm_cli":                      "included",
-			},
-			Limitations: []string{
-				"Development prefix archive for Android terminal bringup.",
-				"Generated from pinned upstream package payloads; product channels must review the audit before release.",
-			},
-		}},
+		Artifacts:     artifacts,
 		Notes: []string{
 			"Archive root is usr/ and is intended to be staged under the Android app files directory.",
 			"Howl should consume this archive by manifest api instead of parsing package internals.",
+			"Public package catalog entries are carried forward from the source manifest; private bootstrap stays hidden behind dev-baseline.",
 		},
 	}
 }
@@ -744,9 +784,15 @@ func newAndroidDevManifest(
 	indexURL string,
 	baseURL string,
 	indexBytes []byte,
+	index androidrepo.Index,
 	packages []androidrepo.Package,
 	roots []string,
+	ownedPackages []string,
 ) (manifest.Document, error) {
+	ownedSet := make(map[string]bool, len(ownedPackages))
+	for _, name := range ownedPackages {
+		ownedSet[name] = true
+	}
 	doc := manifest.Document{
 		SchemaVersion: manifest.SchemaVersion,
 		Project:       "howl-pm",
@@ -766,13 +812,45 @@ func newAndroidDevManifest(
 				"provider_platform":     "android",
 				"provider_architecture": "aarch64",
 				"provider_repository":   "termux-main",
+				"base_url":              baseURL,
 			},
 		}},
 		Notes: []string{
 			"Development channel manifest for Howl Android terminal userland work.",
-			"This pins package metadata and payload checksums; it is not a final product package-manager api.",
+			"This pins package metadata and payload checksums; the public CLI surface is the howl-package-entry catalog, not raw provider payload artifacts.",
 			"Root packages: " + strings.Join(roots, ","),
+			"App-owned shell tooling hidden from the public CLI: " + strings.Join(ownedPackages, ","),
 		},
+	}
+
+	for _, pkg := range sortedIndexPackages(index) {
+		if ownedSet[pkg.Name] {
+			continue
+		}
+		doc.Artifacts = append(doc.Artifacts, manifest.Artifact{
+			Name:    pkg.Name,
+			Kind:    "howl-package-entry",
+			Version: pkg.Version,
+			URL:     "pkg://" + pkg.Name,
+			SHA256:  androidrepo.HashBytes([]byte(pkg.Name + "\n" + pkg.Version + "\n" + pkg.Filename)),
+			Size:    int64(len(pkg.Name)),
+			Metadata: map[string]string{
+				"provider":              "android-userland",
+				"provider_role":         "public-catalog",
+				"provider_platform":     "android",
+				"provider_architecture": "aarch64",
+				"visibility":            "public",
+				"install_strategy":      "termux-package",
+				"source_package":        pkg.Name,
+				"source_index_ref":      "termux-main-aarch64-packages-index",
+				"summary":               firstLine(pkg.Description),
+				"depends":               pkg.Depends,
+				"pre_depends":           pkg.PreDepends,
+			},
+			Limitations: []string{
+				"User-facing package catalog entry resolved through the pinned Termux package index artifact.",
+			},
+		})
 	}
 
 	for _, pkg := range packages {
@@ -811,6 +889,28 @@ func newAndroidDevManifest(
 	}
 
 	return doc, nil
+}
+
+func sortedIndexPackages(index androidrepo.Index) []androidrepo.Package {
+	packages := make([]androidrepo.Package, 0, len(index.Packages))
+	for _, pkg := range index.Packages {
+		packages = append(packages, pkg)
+	}
+	sort.Slice(packages, func(i, j int) bool {
+		return packages[i].Name < packages[j].Name
+	})
+	return packages
+}
+
+func firstLine(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	if line, _, ok := strings.Cut(value, "\n"); ok {
+		return strings.TrimSpace(line)
+	}
+	return value
 }
 
 func writeManifest(path string, doc manifest.Document) error {
