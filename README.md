@@ -42,8 +42,8 @@ Initial Android dev manifest support is in place.
 The first real consumer is:
 
 - `../howl`
-- Android package name: `uk.laurencegouws.zide`
-- Android prefix: `/data/data/uk.laurencegouws.zide/files/usr`
+- Android package name: `howl.term`
+- Android prefix: `/data/data/howl.term/files/usr`
 - Android execution posture: Termux-compatible target SDK 28 until a modern
   userland execution model is proven
 
@@ -94,7 +94,7 @@ the default dev package roots `bash,neovim,git,ripgrep,htop,gotop`, and writes
 pinned package metadata to `dist/android-dev.manifest.json`.
 
 `android-prefix-archive` consumes that manifest, downloads and verifies the
-pinned `.deb` payloads, extracts only `data/data/com.termux/files/usr/*`, and
+pinned `.deb` payloads, extracts only the upstream `usr/` payload tree, and
 writes an archive rooted at `usr/`. Its default `-hardcoded-policy fail` is
 strict; use `-hardcoded-policy audit` only for the current development archive
 while remaining compiled-in Termux prefix hits are still being reviewed. Known

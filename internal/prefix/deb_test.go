@@ -1,4 +1,4 @@
-package androidprefix
+package prefix
 
 import (
 	"archive/tar"

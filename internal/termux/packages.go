@@ -1,6 +1,6 @@
-// Package androidrepo parses Android package-index metadata used to build
+// Package termux parses Termux package-index metadata used to build
 // Howl PM Android artifact manifests.
-package androidrepo
+package termux
 
 import (
 	"bufio"

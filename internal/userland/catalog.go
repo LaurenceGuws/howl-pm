@@ -1,4 +1,4 @@
-package pm
+package userland
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/howl/howl-pm/internal/contract"
+	"github.com/howl/howl-pm/internal/android"
 	"github.com/howl/howl-pm/internal/manifest"
 )
 
@@ -37,7 +37,7 @@ type PackageEntry struct {
 func PackageCatalog(source Source) []PackageEntry {
 	entries := make([]PackageEntry, 0, len(source.Document.Artifacts))
 	for _, artifact := range source.Document.Artifacts {
-		if artifact.Kind != contract.ArtifactKindPackageEntry {
+		if artifact.Kind != android.ArtifactKindPackageEntry {
 			continue
 		}
 		entries = append(entries, packageEntryFromArtifact(artifact))

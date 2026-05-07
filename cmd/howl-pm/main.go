@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/howl/howl-pm/internal/pm"
+	"github.com/howl/howl-pm/internal/userland"
 )
 
 const version = "0.1.1-beta.1"
@@ -111,7 +111,7 @@ func pkgCommand(args []string) error {
 	case "update", "up":
 		return doctor(rest)
 	case "upgrade":
-		return install(append([]string{pm.DevBaselinePackage}, rest...))
+		return install(append([]string{userland.DevBaselinePackage}, rest...))
 	case "install", "in":
 		return install(rest)
 	case "remove", "rm", "uninstall":
@@ -151,7 +151,7 @@ func listProviders(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	for _, provider := range pm.PublicProviders("android") {
+	for _, provider := range userland.PublicProviders("android") {
 		fmt.Printf("%s\t%s\n", provider.ID, provider.Summary)
 	}
 	return nil
@@ -159,12 +159,12 @@ func listProviders(args []string) error {
 
 func doctor(args []string) error {
 	fs := commonFlagSet("doctor")
-	manifestPath := fs.String("manifest", pm.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
+	manifestPath := fs.String("manifest", userland.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
 	prefix := fs.String("prefix", defaultPrefix(), "installed prefix used for offline doctor fallback")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	fmt.Printf("howl_pm_host_platform=%s\n", pm.CurrentHostPlatform())
+	fmt.Printf("howl_pm_host_platform=%s\n", userland.CurrentHostPlatform())
 	source, err := loadSource(*manifestPath)
 	if err != nil {
 		return doctorInstalled(*prefix, err)
@@ -172,7 +172,7 @@ func doctor(args []string) error {
 	fmt.Printf("manifest=%s\n", source.Location)
 	fmt.Printf("platform=%s\n", source.Document.Platform)
 	fmt.Printf("channel=%s\n", source.Document.Channel)
-	if artifact, err := pm.AndroidPrefixArtifact(source); err == nil {
+	if artifact, err := userland.AndroidPrefixArtifact(source); err == nil {
 		fmt.Printf("artifact=%s\n", artifact.Artifact.Name)
 		fmt.Printf("version=%s\n", artifact.Artifact.Version)
 		fmt.Printf("provider=%s\n", artifact.Artifact.Metadata["provider"])
@@ -186,7 +186,7 @@ func doctor(args []string) error {
 
 func listAvailable(args []string) error {
 	fs := commonFlagSet("list-available")
-	manifestPath := fs.String("manifest", pm.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
+	manifestPath := fs.String("manifest", userland.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
 	prefix := fs.String("prefix", defaultPrefix(), "installed prefix used for offline list fallback")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -195,7 +195,7 @@ func listAvailable(args []string) error {
 	if err != nil {
 		return listInstalled(*prefix, err)
 	}
-	for _, name := range pm.AvailablePackages(source) {
+	for _, name := range userland.AvailablePackages(source) {
 		fmt.Println(name)
 	}
 	return nil
@@ -203,9 +203,9 @@ func listAvailable(args []string) error {
 
 func install(args []string) error {
 	fs := commonFlagSet("install")
-	manifestPath := fs.String("manifest", pm.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
+	manifestPath := fs.String("manifest", userland.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
 	prefix := fs.String("prefix", defaultPrefix(), "installation prefix (defaults to $PREFIX)")
-	cacheDir := fs.String("cache-dir", pm.DefaultCacheDir(), "download/cache directory")
+	cacheDir := fs.String("cache-dir", userland.DefaultCacheDir(), "download/cache directory")
 	args = reorderFlags(args, map[string]bool{
 		"manifest":  true,
 		"prefix":    true,
@@ -228,7 +228,7 @@ func install(args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 	for _, pkg := range fs.Args() {
-		result, err := pm.InstallPackage(ctx, source, pkg, *prefix, *cacheDir)
+		result, err := userland.InstallPackage(ctx, source, pkg, *prefix, *cacheDir)
 		if err != nil {
 			return err
 		}
@@ -248,11 +248,11 @@ func commonFlagSet(name string) *flag.FlagSet {
 }
 
 func doctorInstalled(prefix string, manifestErr error) error {
-	stamp, err := pm.LoadInstallStamp(prefix)
+	stamp, err := userland.LoadInstallStamp(prefix)
 	if err != nil {
 		return fmt.Errorf("manifest unavailable (%v) and no install stamp at prefix %q: %w", manifestErr, prefix, err)
 	}
-	fmt.Printf("howl_pm_host_platform=%s\n", pm.CurrentHostPlatform())
+	fmt.Printf("howl_pm_host_platform=%s\n", userland.CurrentHostPlatform())
 	fmt.Printf("manifest=%s\n", stamp.Manifest)
 	fmt.Printf("installed=true\n")
 	fmt.Printf("package=%s\n", stamp.Package)
@@ -268,7 +268,7 @@ func doctorInstalled(prefix string, manifestErr error) error {
 }
 
 func listInstalled(prefix string, manifestErr error) error {
-	stamp, err := pm.LoadInstallStamp(prefix)
+	stamp, err := userland.LoadInstallStamp(prefix)
 	if err != nil {
 		return fmt.Errorf("manifest unavailable (%v) and no install stamp at prefix %q: %w", manifestErr, prefix, err)
 	}
@@ -284,7 +284,7 @@ func pkgListInstalled(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	stamp, err := pm.LoadInstallStamp(*prefix)
+	stamp, err := userland.LoadInstallStamp(*prefix)
 	if err != nil {
 		return fmt.Errorf("no install stamp at prefix %q: %w", *prefix, err)
 	}
@@ -296,7 +296,7 @@ func pkgListInstalled(args []string) error {
 
 func pkgSearch(args []string) error {
 	fs := commonFlagSet("pkg-search")
-	manifestPath := fs.String("manifest", pm.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
+	manifestPath := fs.String("manifest", userland.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -309,8 +309,8 @@ func pkgSearch(args []string) error {
 		return err
 	}
 	seen := map[string]bool{}
-	for _, entry := range pm.PackageCatalog(source) {
-		if entry.Visibility != pm.PackageVisibilityPublic {
+	for _, entry := range userland.PackageCatalog(source) {
+		if entry.Visibility != userland.PackageVisibilityPublic {
 			continue
 		}
 		if strings.Contains(strings.ToLower(entry.Name), pattern) || strings.Contains(strings.ToLower(entry.Summary), pattern) {
@@ -318,8 +318,8 @@ func pkgSearch(args []string) error {
 			fmt.Println(entry.Name)
 		}
 	}
-	if pm.AndroidCatalogActive() {
-		for _, name := range pm.AvailablePackages(source) {
+	if userland.AndroidCatalogActive() {
+		for _, name := range userland.AvailablePackages(source) {
 			if seen[name] {
 				continue
 			}
@@ -333,7 +333,7 @@ func pkgSearch(args []string) error {
 
 func pkgShow(args []string) error {
 	fs := commonFlagSet("pkg-show")
-	manifestPath := fs.String("manifest", pm.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
+	manifestPath := fs.String("manifest", userland.DefaultAndroidDevManifestURL, "artifact manifest URL/path")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -345,7 +345,7 @@ func pkgShow(args []string) error {
 	if err != nil {
 		return err
 	}
-	entry, found := pm.FindPackage(source, name, false)
+	entry, found := userland.FindPackage(source, name, false)
 	if found {
 		fmt.Printf("package=%s\n", entry.Name)
 		fmt.Printf("version=%s\n", entry.Version)
@@ -364,7 +364,7 @@ func pkgShow(args []string) error {
 		return nil
 	}
 	for _, artifact := range source.Document.Artifacts {
-		if artifact.Kind == "android-test-binary" && artifact.Name == name && pm.AndroidCatalogActive() {
+		if artifact.Kind == "android-test-binary" && artifact.Name == name && userland.AndroidCatalogActive() {
 			fmt.Printf("package=%s\n", artifact.Name)
 			fmt.Printf("version=%s\n", artifact.Version)
 			fmt.Printf("provider=%s\n", artifact.Metadata["provider"])
@@ -409,8 +409,8 @@ func reorderFlags(args []string, takesValue map[string]bool) []string {
 	return append(flags, positionals...)
 }
 
-func loadSource(location string) (pm.Source, error) {
+func loadSource(location string) (userland.Source, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
-	return pm.LoadSource(ctx, location)
+	return userland.LoadSource(ctx, location)
 }

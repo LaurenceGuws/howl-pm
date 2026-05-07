@@ -1,4 +1,4 @@
-package contract
+package android
 
 const (
 	ProjectName = "howl-pm"

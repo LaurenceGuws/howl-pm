@@ -17,10 +17,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/howl/howl-pm/internal/androidprefix"
-	"github.com/howl/howl-pm/internal/androidrepo"
-	"github.com/howl/howl-pm/internal/contract"
+	"github.com/howl/howl-pm/internal/android"
 	"github.com/howl/howl-pm/internal/manifest"
+	"github.com/howl/howl-pm/internal/prefix"
+	"github.com/howl/howl-pm/internal/termux"
 )
 
 const version = "0.1.0-dev"
@@ -102,8 +102,8 @@ func androidDevManifest(args []string) error {
 	channel := fs.String("channel", "dev", "artifact channel name")
 	cacheDir := fs.String("cache-dir", ".cache/android/termux-main/aarch64", "package index cache directory")
 	out := fs.String("out", "dist/android-dev.manifest.json", "output manifest path, or - for stdout")
-	indexURL := fs.String("index-url", androidrepo.DefaultIndexURL, "Android package index URL")
-	baseURL := fs.String("base-url", androidrepo.DefaultBaseURL, "base URL for package filenames")
+	indexURL := fs.String("index-url", termux.DefaultIndexURL, "Android package index URL")
+	baseURL := fs.String("base-url", termux.DefaultBaseURL, "base URL for package filenames")
 	roots := fs.String("packages", "bash,neovim,git,ripgrep,htop,gotop", "comma-separated root packages for the dev channel")
 	ownedPackages := fs.String("owned-packages", defaultOwnedPackagesCSV, "comma-separated app-owned shell/runtime tooling hidden from the public CLI catalog")
 	refresh := fs.Bool("refresh", false, "refresh the cached package index")
@@ -118,13 +118,13 @@ func androidDevManifest(args []string) error {
 	if err != nil {
 		return err
 	}
-	index, err := androidrepo.ParseIndex(bytes.NewReader(indexBytes))
+	index, err := termux.ParseIndex(bytes.NewReader(indexBytes))
 	if err != nil {
 		return err
 	}
 	rootPackages := splitCSV(*roots)
 	ownedPackageNames := splitCSV(*ownedPackages)
-	packages, err := androidrepo.ResolveClosure(index, rootPackages)
+	packages, err := termux.ResolveClosure(index, rootPackages)
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func androidDevRelease(args []string) error {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
-	_, indexPath, err := loadOrFetchIndex(ctx, ".cache/android/termux-main/aarch64", androidrepo.DefaultIndexURL, *refresh)
+	_, indexPath, err := loadOrFetchIndex(ctx, ".cache/android/termux-main/aarch64", termux.DefaultIndexURL, *refresh)
 	if err != nil {
 		return err
 	}
@@ -313,7 +313,7 @@ func androidPrefixArchive(args []string) error {
 		if err != nil {
 			return err
 		}
-		stats, err := androidprefix.ExtractDebUSR(debPath, stagingRoot)
+		stats, err := prefix.ExtractDebUSR(debPath, stagingRoot)
 		if err != nil {
 			return fmt.Errorf("%s: extract: %w", artifact.Name, err)
 		}
@@ -334,7 +334,7 @@ func androidPrefixArchive(args []string) error {
 			return err
 		}
 	}
-	removedTermuxBinaries, err := androidprefix.PruneTermuxPrefixedBinaries(stagingRoot)
+	removedTermuxBinaries, err := prefix.PruneTermuxPrefixedBinaries(stagingRoot)
 	if err != nil {
 		return err
 	}
@@ -349,7 +349,7 @@ func androidPrefixArchive(args []string) error {
 		return fmt.Errorf("hardcoded com.termux hits remain: %d (audit written to %s)", len(audit.HardcodedTermuxHits), *auditOut)
 	}
 
-	archiveStats, err := androidprefix.WriteTarGz(stagingRoot, *out)
+	archiveStats, err := prefix.WriteTarGz(stagingRoot, *out)
 	if err != nil {
 		return err
 	}
@@ -639,7 +639,7 @@ func writeBundledPMInstallStamp(stagingRoot string, manifestPath string, sourceM
 		"manifest":                manifestPath,
 		"artifact":                "howl-android-dev-prefix",
 		"version":                 "source-sha256-" + sourceManifestSHA256[:12],
-		"provider":                contract.ProviderTermuxMain,
+		"provider":                android.ProviderTermuxMain,
 		"hardcoded_termux_policy": audit.HardcodedPolicy,
 		"files":                   audit.ExtractedFiles,
 		"dirs":                    audit.ExtractedDirs,
@@ -648,7 +648,7 @@ func writeBundledPMInstallStamp(stagingRoot string, manifestPath string, sourceM
 			"package":      "dev-baseline",
 			"artifact":     "howl-android-dev-prefix",
 			"version":      "source-sha256-" + sourceManifestSHA256[:12],
-			"provider":     contract.ProviderTermuxMain,
+			"provider":     android.ProviderTermuxMain,
 			"files":        audit.ExtractedFiles,
 			"dirs":         audit.ExtractedDirs,
 			"symlinks":     audit.ExtractedSymlinks,
@@ -670,22 +670,22 @@ func newAndroidPrefixManifest(
 	sourceDoc manifest.Document,
 	channel string,
 	archivePath string,
-	archiveStats androidprefix.ArchiveStats,
+	archiveStats prefix.ArchiveStats,
 	sourceManifestSHA256 string,
 	audit prefixAudit,
 ) manifest.Document {
 	artifacts := []manifest.Artifact{{
 		Name:    "dev-baseline",
-		Kind:    contract.ArtifactKindPackageEntry,
+		Kind:    android.ArtifactKindPackageEntry,
 		Version: "sha256-" + archiveStats.SHA256[:12],
 		URL:     "pkg://dev-baseline",
 		SHA256:  archiveStats.SHA256,
 		Size:    archiveStats.Size,
 		Metadata: map[string]string{
 			"provider":              "android-userland",
-			"provider_role":         contract.ProviderRoleBootstrapProfile,
-			"provider_platform":     contract.PlatformAndroid,
-			"provider_architecture": contract.ArchitectureAArch64,
+			"provider_role":         android.ProviderRoleBootstrapProfile,
+			"provider_platform":     android.PlatformAndroid,
+			"provider_architecture": android.ArchitectureAArch64,
 			"visibility":            "private",
 			"install_strategy":      "prefix-archive",
 			"artifact_ref":          "howl-android-dev-prefix",
@@ -693,28 +693,28 @@ func newAndroidPrefixManifest(
 		},
 	}, {
 		Name:    "howl-android-dev-prefix",
-		Kind:    contract.ArtifactKindPrefixArchive,
+		Kind:    android.ArtifactKindPrefixArchive,
 		Version: "sha256-" + archiveStats.SHA256[:12],
 		URL:     filepath.ToSlash(archivePath),
 		SHA256:  archiveStats.SHA256,
 		Size:    archiveStats.Size,
 		Metadata: map[string]string{
-			"package_name":                     contract.AndroidPackageName,
-			"prefix":                           contract.AndroidPrefixPath,
+			"package_name":                     android.AndroidPackageName,
+			"prefix":                           android.AndroidPrefixPath,
 			"archive_root":                     "usr",
-			"target_sdk":                       contract.AndroidTargetSDK,
-			"provider":                         contract.ProviderTermuxMain,
-			"provider_role":                    contract.ProviderRoleDevBootstrap,
-			"provider_platform":                contract.PlatformAndroid,
-			"provider_architecture":            contract.ArchitectureAArch64,
+			"target_sdk":                       android.AndroidTargetSDK,
+			"provider":                         android.ProviderTermuxMain,
+			"provider_role":                    android.ProviderRoleDevBootstrap,
+			"provider_platform":                android.PlatformAndroid,
+			"provider_architecture":            android.ArchitectureAArch64,
 			"source_manifest_sha256":           sourceManifestSHA256,
 			"source_package_count":             fmt.Sprintf("%d", audit.PackageCount),
 			"hardcoded_termux_hits":            fmt.Sprintf("%d", len(audit.HardcodedTermuxHits)),
 			"hardcoded_termux_policy":          audit.HardcodedPolicy,
 			"text_rewrites":                    fmt.Sprintf("%d", audit.TextRewrites),
 			"binary_rewrites":                  fmt.Sprintf("%d", audit.BinaryRewrites),
-			"runtime_support_files":            androidprefix.PrefixArchiveRuntimeSupportFiles(),
-			"runtime_support_links":            androidprefix.PrefixArchiveRuntimeSupportLinks(),
+			"runtime_support_files":            prefix.PrefixArchiveRuntimeSupportFiles(),
+			"runtime_support_links":            prefix.PrefixArchiveRuntimeSupportLinks(),
 			"removed_termux_prefixed_binaries": fmt.Sprintf("%d", audit.RemovedTermuxBinaries),
 			"extracted_regular_files":          fmt.Sprintf("%d", audit.ExtractedFiles),
 			"extracted_symlinks":               fmt.Sprintf("%d", audit.ExtractedSymlinks),
@@ -728,14 +728,14 @@ func newAndroidPrefixManifest(
 		},
 	}}
 	for _, artifact := range sourceDoc.Artifacts {
-		if artifact.Kind == contract.ArtifactKindPackageIndex || artifact.Kind == contract.ArtifactKindPackageEntry {
+		if artifact.Kind == android.ArtifactKindPackageIndex || artifact.Kind == android.ArtifactKindPackageEntry {
 			artifacts = append(artifacts, artifact)
 		}
 	}
 	return manifest.Document{
 		SchemaVersion: manifest.SchemaVersion,
-		Project:       contract.ProjectName,
-		Platform:      contract.PlatformAndroid,
+		Project:       android.ProjectName,
+		Platform:      android.PlatformAndroid,
 		Channel:       channel,
 		Artifacts:     artifacts,
 		Notes: []string{
@@ -751,7 +751,7 @@ func loadOrFetchIndex(ctx context.Context, cacheDir string, indexURL string, ref
 	hashPath := indexPath + ".sha256"
 	if !refresh {
 		if bytes, err := os.ReadFile(indexPath); err == nil {
-			hash := androidrepo.HashBytes(bytes)
+			hash := termux.HashBytes(bytes)
 			if expectedBytes, err := os.ReadFile(hashPath); err == nil {
 				expected := strings.TrimSpace(string(expectedBytes))
 				if expected != "" && expected != hash {
@@ -784,7 +784,7 @@ func loadOrFetchIndex(ctx context.Context, cacheDir string, indexURL string, ref
 	if err := os.WriteFile(indexPath, bytes, 0o644); err != nil {
 		return nil, "", err
 	}
-	hash := androidrepo.HashBytes(bytes)
+	hash := termux.HashBytes(bytes)
 	if err := os.WriteFile(hashPath, []byte(hash+"\n"), 0o644); err != nil {
 		return nil, "", err
 	}
@@ -796,8 +796,8 @@ func newAndroidDevManifest(
 	indexURL string,
 	baseURL string,
 	indexBytes []byte,
-	index androidrepo.Index,
-	packages []androidrepo.Package,
+	index termux.Index,
+	packages []termux.Package,
 	roots []string,
 	ownedPackages []string,
 ) (manifest.Document, error) {
@@ -811,19 +811,19 @@ func newAndroidDevManifest(
 		Platform:      "android",
 		Channel:       channel,
 		Artifacts: []manifest.Artifact{{
-			Name:    contract.IndexArtifactName,
-			Kind:    contract.ArtifactKindPackageIndex,
-			Version: "sha256-" + androidrepo.HashBytes(indexBytes)[:12],
+			Name:    android.IndexArtifactName,
+			Kind:    android.ArtifactKindPackageIndex,
+			Version: "sha256-" + termux.HashBytes(indexBytes)[:12],
 			URL:     indexURL,
-			SHA256:  androidrepo.HashBytes(indexBytes),
+			SHA256:  termux.HashBytes(indexBytes),
 			Size:    int64(len(indexBytes)),
 			Metadata: map[string]string{
-				"architecture":          contract.ArchitectureAArch64,
-				"provider":              contract.ProviderTermuxMain,
-				"provider_role":         contract.ProviderRoleDevBootstrap,
-				"provider_platform":     contract.PlatformAndroid,
-				"provider_architecture": contract.ArchitectureAArch64,
-				"provider_repository":   contract.ProviderTermuxMain,
+				"architecture":          android.ArchitectureAArch64,
+				"provider":              android.ProviderTermuxMain,
+				"provider_role":         android.ProviderRoleDevBootstrap,
+				"provider_platform":     android.PlatformAndroid,
+				"provider_architecture": android.ArchitectureAArch64,
+				"provider_repository":   android.ProviderTermuxMain,
 				"base_url":              baseURL,
 			},
 		}},
@@ -841,20 +841,20 @@ func newAndroidDevManifest(
 		}
 		doc.Artifacts = append(doc.Artifacts, manifest.Artifact{
 			Name:    pkg.Name,
-			Kind:    contract.ArtifactKindPackageEntry,
+			Kind:    android.ArtifactKindPackageEntry,
 			Version: pkg.Version,
 			URL:     "pkg://" + pkg.Name,
-			SHA256:  androidrepo.HashBytes([]byte(pkg.Name + "\n" + pkg.Version + "\n" + pkg.Filename)),
+			SHA256:  termux.HashBytes([]byte(pkg.Name + "\n" + pkg.Version + "\n" + pkg.Filename)),
 			Size:    int64(len(pkg.Name)),
 			Metadata: map[string]string{
 				"provider":              "android-userland",
-				"provider_role":         contract.ProviderRolePublicCatalog,
-				"provider_platform":     contract.PlatformAndroid,
-				"provider_architecture": contract.ArchitectureAArch64,
+				"provider_role":         android.ProviderRolePublicCatalog,
+				"provider_platform":     android.PlatformAndroid,
+				"provider_architecture": android.ArchitectureAArch64,
 				"visibility":            "public",
 				"install_strategy":      "termux-package",
 				"source_package":        pkg.Name,
-				"source_index_ref":      contract.IndexArtifactName,
+				"source_index_ref":      android.IndexArtifactName,
 				"summary":               firstLine(pkg.Description),
 				"depends":               pkg.Depends,
 				"pre_depends":           pkg.PreDepends,
@@ -866,7 +866,7 @@ func newAndroidDevManifest(
 	}
 
 	for _, pkg := range packages {
-		packageURL, err := androidrepo.AbsolutePackageURL(baseURL, pkg.Filename)
+		packageURL, err := termux.AbsolutePackageURL(baseURL, pkg.Filename)
 		if err != nil {
 			return manifest.Document{}, fmt.Errorf("%s: build package URL: %w", pkg.Name, err)
 		}
@@ -874,11 +874,11 @@ func newAndroidDevManifest(
 			"package":               pkg.Name,
 			"architecture":          pkg.Architecture,
 			"filename":              pkg.Filename,
-			"provider":              contract.ProviderTermuxMain,
-			"provider_role":         contract.ProviderRoleDevBootstrap,
-			"provider_platform":     contract.PlatformAndroid,
-			"provider_architecture": contract.ArchitectureAArch64,
-			"provider_repository":   contract.ProviderTermuxMain,
+			"provider":              android.ProviderTermuxMain,
+			"provider_role":         android.ProviderRoleDevBootstrap,
+			"provider_platform":     android.PlatformAndroid,
+			"provider_architecture": android.ArchitectureAArch64,
+			"provider_repository":   android.ProviderTermuxMain,
 		}
 		if pkg.Depends != "" {
 			metadata["depends"] = pkg.Depends
@@ -887,8 +887,8 @@ func newAndroidDevManifest(
 			metadata["pre_depends"] = pkg.PreDepends
 		}
 		doc.Artifacts = append(doc.Artifacts, manifest.Artifact{
-			Name:     contract.ProviderTermuxMain + "/" + pkg.Name,
-			Kind:     contract.ArtifactKindTermuxDeb,
+			Name:     android.ProviderTermuxMain + "/" + pkg.Name,
+			Kind:     android.ArtifactKindTermuxDeb,
 			Version:  pkg.Version,
 			URL:      packageURL,
 			SHA256:   pkg.SHA256,
@@ -903,8 +903,8 @@ func newAndroidDevManifest(
 	return doc, nil
 }
 
-func sortedIndexPackages(index androidrepo.Index) []androidrepo.Package {
-	packages := make([]androidrepo.Package, 0, len(index.Packages))
+func sortedIndexPackages(index termux.Index) []termux.Package {
+	packages := make([]termux.Package, 0, len(index.Packages))
 	for _, pkg := range index.Packages {
 		packages = append(packages, pkg)
 	}

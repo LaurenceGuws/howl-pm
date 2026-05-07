@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/howl/howl-pm/internal/contract"
+	"github.com/howl/howl-pm/internal/android"
 	"github.com/howl/howl-pm/internal/manifest"
 )
 
@@ -15,7 +15,7 @@ const (
 	catalogSmokeSourceRel  = "assets/howl-android-catalog-smoke.sh"
 	catalogSmokeDistName   = "howl-android-catalog-smoke.sh"
 	catalogSmokeArtifactID = "howl-android-catalog-smoke"
-	pinnedIndexDistName    = contract.IndexArtifactName
+	pinnedIndexDistName    = android.IndexArtifactName
 )
 
 func moduleRootDir() (string, error) {
@@ -63,23 +63,23 @@ func materializeCatalogSmoke(distDir string) (sha256hex string, size int64, dist
 
 func applyAndroidDevReleaseEdits(doc manifest.Document, archiveAssetBaseName, indexAssetBaseName, smokeHash string, smokeSize int64) (manifest.Document, error) {
 	for i := range doc.Artifacts {
-		if doc.Artifacts[i].Kind == contract.ArtifactKindPrefixArchive {
+		if doc.Artifacts[i].Kind == android.ArtifactKindPrefixArchive {
 			doc.Artifacts[i].URL = archiveAssetBaseName
 		}
-		if doc.Artifacts[i].Kind == contract.ArtifactKindPackageIndex {
+		if doc.Artifacts[i].Kind == android.ArtifactKindPackageIndex {
 			doc.Artifacts[i].URL = indexAssetBaseName
 		}
 	}
 	version := "sha256-" + smokeHash[:12]
 	doc.Artifacts = append(doc.Artifacts, manifest.Artifact{
 		Name:    catalogSmokeArtifactID,
-		Kind:    contract.ArtifactKindTestBinary,
+		Kind:    android.ArtifactKindTestBinary,
 		Version: version,
 		URL:     catalogSmokeDistName,
 		SHA256:  smokeHash,
 		Size:    smokeSize,
 		Metadata: func() map[string]string {
-			metadata := contract.ProviderMetadata(contract.ProviderRoleDevBootstrap)
+			metadata := android.ProviderMetadata(android.ProviderRoleDevBootstrap)
 			metadata["install_relative_path"] = "libexec/howl-pm/howl-android-catalog-smoke.sh"
 			metadata["unix_mode"] = "0755"
 			return metadata
@@ -108,13 +108,13 @@ func materializePinnedIndex(distDir, prefixManifestPath, indexPath string) (stri
 	}
 	var indexArtifact *manifest.Artifact
 	for i := range doc.Artifacts {
-		if doc.Artifacts[i].Kind == contract.ArtifactKindPackageIndex {
+		if doc.Artifacts[i].Kind == android.ArtifactKindPackageIndex {
 			indexArtifact = &doc.Artifacts[i]
 			break
 		}
 	}
 	if indexArtifact == nil {
-		return "", "", fmt.Errorf("release manifest source missing %s artifact", contract.ArtifactKindPackageIndex)
+		return "", "", fmt.Errorf("release manifest source missing %s artifact", android.ArtifactKindPackageIndex)
 	}
 	indexBytes, err := os.ReadFile(filepath.Clean(indexPath))
 	if err != nil {

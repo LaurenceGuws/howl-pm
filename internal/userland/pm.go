@@ -1,5 +1,5 @@
-// Package pm implements the user-facing Howl PM mobile package CLI surface.
-package pm
+// Package userland implements the user-facing Howl PM install and catalog logic.
+package userland
 
 import (
 	"context"
@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/howl/howl-pm/internal/androidrepo"
-	"github.com/howl/howl-pm/internal/contract"
+	"github.com/howl/howl-pm/internal/android"
 	"github.com/howl/howl-pm/internal/manifest"
+	"github.com/howl/howl-pm/internal/termux"
 )
 
 const (
@@ -68,11 +68,11 @@ type InstallStampPackage struct {
 
 func artifactCacheSuffix(artifact manifest.Artifact) string {
 	switch artifact.Kind {
-	case contract.ArtifactKindTestBinary:
+	case android.ArtifactKindTestBinary:
 		return ".bin"
-	case contract.ArtifactKindTermuxDeb:
+	case android.ArtifactKindTermuxDeb:
 		return ".deb"
-	case contract.ArtifactKindPackageIndex, contract.ArtifactKindPackageEntry:
+	case android.ArtifactKindPackageIndex, android.ArtifactKindPackageEntry:
 		return ".json"
 	default:
 		return ".tar.gz"
@@ -82,12 +82,12 @@ func artifactCacheSuffix(artifact manifest.Artifact) string {
 func AndroidPrefixArtifact(source Source) (PrefixArtifact, error) {
 	var selected []manifest.Artifact
 	for _, artifact := range source.Document.Artifacts {
-		if artifact.Kind == contract.ArtifactKindPrefixArchive {
+		if artifact.Kind == android.ArtifactKindPrefixArchive {
 			selected = append(selected, artifact)
 		}
 	}
 	if len(selected) != 1 {
-		return PrefixArtifact{}, fmt.Errorf("manifest must contain exactly one %s, found %d", contract.ArtifactKindPrefixArchive, len(selected))
+		return PrefixArtifact{}, fmt.Errorf("manifest must contain exactly one %s, found %d", android.ArtifactKindPrefixArchive, len(selected))
 	}
 	artifact := selected[0]
 	if artifact.Metadata["archive_root"] != "usr" {
@@ -216,7 +216,7 @@ func InstallTermuxPackage(ctx context.Context, source Source, entry PackageEntry
 	if rootName == "" {
 		rootName = entry.Name
 	}
-	packages, err := androidrepo.ResolveClosure(index, []string{rootName})
+	packages, err := termux.ResolveClosure(index, []string{rootName})
 	if err != nil {
 		return InstallResult{}, err
 	}
@@ -234,13 +234,13 @@ func InstallTermuxPackage(ctx context.Context, source Source, entry PackageEntry
 	var totals extractStats
 	var lastPath string
 	for _, pkg := range packages {
-		packageURL, err := androidrepo.AbsolutePackageURL(baseURL, pkg.Filename)
+		packageURL, err := termux.AbsolutePackageURL(baseURL, pkg.Filename)
 		if err != nil {
 			return InstallResult{}, err
 		}
 		artifact := manifest.Artifact{
-			Name:    contract.ProviderTermuxMain + "/" + pkg.Name,
-			Kind:    contract.ArtifactKindTermuxDeb,
+			Name:    android.ProviderTermuxMain + "/" + pkg.Name,
+			Kind:    android.ArtifactKindTermuxDeb,
 			Version: pkg.Version,
 			URL:     packageURL,
 			SHA256:  pkg.SHA256,

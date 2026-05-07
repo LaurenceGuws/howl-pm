@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/howl/howl-pm/internal/contract"
+	"github.com/howl/howl-pm/internal/android"
 	"github.com/howl/howl-pm/internal/manifest"
 )
 
@@ -46,32 +46,32 @@ func TestMaterializeCatalogSmokeWritesDist(t *testing.T) {
 func TestApplyAndroidDevReleaseEditsValidates(t *testing.T) {
 	doc := manifest.Document{
 		SchemaVersion: manifest.SchemaVersion,
-		Project:       contract.ProjectName,
-		Platform:      contract.PlatformAndroid,
+		Project:       android.ProjectName,
+		Platform:      android.PlatformAndroid,
 		Channel:       "dev",
 		Artifacts: []manifest.Artifact{
 			{
 				Name:    "howl-android-dev-prefix",
-				Kind:    contract.ArtifactKindPrefixArchive,
+				Kind:    android.ArtifactKindPrefixArchive,
 				Version: "sha256-aaaaaaaaaaaa",
 				URL:     "howl-android-dev-prefix.tar.gz",
 				SHA256:  strings.Repeat("a", 64),
 				Size:    1,
 				Metadata: func() map[string]string {
-					metadata := contract.AndroidPrefixMetadata(contract.ProviderRoleDevBootstrap)
+					metadata := android.AndroidPrefixMetadata(android.ProviderRoleDevBootstrap)
 					metadata["archive_root"] = "usr"
 					return metadata
 				}(),
 			},
 			{
-				Name:    contract.IndexArtifactName,
-				Kind:    contract.ArtifactKindPackageIndex,
+				Name:    android.IndexArtifactName,
+				Kind:    android.ArtifactKindPackageIndex,
 				Version: "sha256-bbbbbbbbbbbb",
 				URL:     "Packages",
 				SHA256:  strings.Repeat("b", 64),
 				Size:    2,
 				Metadata: func() map[string]string {
-					metadata := contract.ProviderMetadata(contract.ProviderRoleDevBootstrap)
+					metadata := android.ProviderMetadata(android.ProviderRoleDevBootstrap)
 					metadata["base_url"] = "https://packages.termux.dev/apt/termux-main/"
 					return metadata
 				}(),
@@ -82,14 +82,14 @@ func TestApplyAndroidDevReleaseEditsValidates(t *testing.T) {
 		t.Fatal(err)
 	}
 	smokeHash := strings.Repeat("c", 64)
-	merged, err := applyAndroidDevReleaseEdits(doc, "howl-android-dev-prefix.tar.gz", contract.IndexArtifactName, smokeHash, 99)
+	merged, err := applyAndroidDevReleaseEdits(doc, "howl-android-dev-prefix.tar.gz", android.IndexArtifactName, smokeHash, 99)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(merged.Artifacts) != 3 {
 		t.Fatalf("artifacts %d", len(merged.Artifacts))
 	}
-	if merged.Artifacts[2].Kind != contract.ArtifactKindTestBinary || merged.Artifacts[2].Name != catalogSmokeArtifactID {
+	if merged.Artifacts[2].Kind != android.ArtifactKindTestBinary || merged.Artifacts[2].Name != catalogSmokeArtifactID {
 		t.Fatalf("smoke artifact: %#v", merged.Artifacts[2])
 	}
 	if merged.Artifacts[2].SHA256 != smokeHash {
@@ -98,7 +98,7 @@ func TestApplyAndroidDevReleaseEditsValidates(t *testing.T) {
 	if merged.Artifacts[0].URL != "howl-android-dev-prefix.tar.gz" {
 		t.Fatal("archive url rewrite")
 	}
-	if merged.Artifacts[1].URL != contract.IndexArtifactName {
+	if merged.Artifacts[1].URL != android.IndexArtifactName {
 		t.Fatal("index url rewrite")
 	}
 }

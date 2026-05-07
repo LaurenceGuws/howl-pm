@@ -1,6 +1,6 @@
-// Package androidprefix materializes Android app-prefix archives from pinned
+// Package prefix materializes Android app-prefix archives from pinned
 // package artifacts.
-package androidprefix
+package prefix
 
 import (
 	"archive/tar"
@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/howl/howl-pm/internal/contract"
+	"github.com/howl/howl-pm/internal/android"
 	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
 )
@@ -20,8 +20,8 @@ import (
 const (
 	TermuxUSRPrefix = "data/data/com.termux/files/usr/"
 	AppUSRPrefix    = "usr/"
-	AppPackageName  = contract.AndroidPackageName
-	AppUSRPath      = contract.AndroidPrefixPath
+	AppPackageName  = android.AndroidPackageName
+	AppUSRPath      = android.AndroidPrefixPath
 	// BinaryUSRBridgePath replaces "/data/data/com.termux/files/usr" in non-text
 	// payloads (variable-length bytes.ReplaceAll). It must live under the app
 	// package directory so Android consumers can materialize it without a

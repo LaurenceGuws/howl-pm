@@ -1,9 +1,9 @@
-package pm
+package userland
 
 import (
 	"sort"
 
-	"github.com/howl/howl-pm/internal/contract"
+	"github.com/howl/howl-pm/internal/android"
 )
 
 // Provider describes a package source known by howl-pm.
@@ -19,15 +19,15 @@ type Provider struct {
 var providerRegistry = []Provider{
 	{
 		ID:       "android-userland",
-		Platform: contract.PlatformAndroid,
+		Platform: android.PlatformAndroid,
 		Scope:    "subset",
-		Upstream: contract.ProviderTermuxMain,
+		Upstream: android.ProviderTermuxMain,
 		Summary:  "Howl-maintained Android userland subset api",
 		Public:   false,
 	},
 	{
-		ID:       contract.ProviderTermuxMain,
-		Platform: contract.PlatformAndroid,
+		ID:       android.ProviderTermuxMain,
+		Platform: android.PlatformAndroid,
 		Scope:    "full",
 		Upstream: "",
 		Summary:  "Upstream Termux main repository provider",

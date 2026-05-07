@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/howl/howl-pm/internal/contract"
+	"github.com/howl/howl-pm/internal/android"
 )
 
 const SchemaVersion = 1
@@ -34,7 +34,7 @@ type Artifact struct {
 }
 
 func NewSkeleton(platform string, channel string) (Document, error) {
-	if platform != contract.PlatformAndroid && platform != contract.PlatformIOS {
+	if platform != android.PlatformAndroid && platform != android.PlatformIOS {
 		return Document{}, fmt.Errorf("unsupported platform %q", platform)
 	}
 	if channel == "" {
@@ -43,7 +43,7 @@ func NewSkeleton(platform string, channel string) (Document, error) {
 
 	doc := Document{
 		SchemaVersion: SchemaVersion,
-		Project:       contract.ProjectName,
+		Project:       android.ProjectName,
 		Platform:      platform,
 		Channel:       channel,
 		Artifacts:     []Artifact{},
@@ -53,14 +53,14 @@ func NewSkeleton(platform string, channel string) (Document, error) {
 		},
 	}
 
-	if platform == contract.PlatformAndroid {
+	if platform == android.PlatformAndroid {
 		doc.Artifacts = append(doc.Artifacts, Artifact{
 			Name:     "howl-android-userland-bootstrap",
-			Kind:     contract.ArtifactKindPrefixArchive,
+			Kind:     android.ArtifactKindPrefixArchive,
 			Version:  "0.0.0-dev",
 			URL:      "TODO",
 			SHA256:   "TODO",
-			Metadata: contract.AndroidPrefixMetadata(contract.ProviderRoleDevBootstrap),
+			Metadata: android.AndroidPrefixMetadata(android.ProviderRoleDevBootstrap),
 			Limitations: []string{
 				"Development skeleton. Not a signed product channel.",
 				"Must not point at unmodified com.termux-rooted package payloads.",
@@ -68,10 +68,10 @@ func NewSkeleton(platform string, channel string) (Document, error) {
 		})
 	}
 
-	if platform == contract.PlatformIOS {
+	if platform == android.PlatformIOS {
 		doc.Artifacts = append(doc.Artifacts, Artifact{
 			Name:    "howl-ios-tool-bundle",
-			Kind:    contract.ArtifactKindIOSBundle,
+			Kind:    android.ArtifactKindIOSBundle,
 			Version: "0.0.0-dev",
 			URL:     "TODO",
 			SHA256:  "TODO",
@@ -104,10 +104,10 @@ func (doc Document) Validate() error {
 	if doc.SchemaVersion != SchemaVersion {
 		return fmt.Errorf("unsupported schema_version %d", doc.SchemaVersion)
 	}
-	if doc.Project != contract.ProjectName {
+	if doc.Project != android.ProjectName {
 		return fmt.Errorf("unexpected project %q", doc.Project)
 	}
-	if doc.Platform != contract.PlatformAndroid && doc.Platform != contract.PlatformIOS {
+	if doc.Platform != android.PlatformAndroid && doc.Platform != android.PlatformIOS {
 		return fmt.Errorf("unsupported platform %q", doc.Platform)
 	}
 	if doc.Channel == "" {
@@ -132,19 +132,19 @@ func (doc Document) Validate() error {
 		if artifact.Size < 0 {
 			return fmt.Errorf("artifact[%d].size must be non-negative", i)
 		}
-		if artifact.Kind == contract.ArtifactKindTestBinary {
-			if doc.Platform != contract.PlatformAndroid {
-				return fmt.Errorf("artifact[%d].kind %s is only valid for platform android", i, contract.ArtifactKindTestBinary)
+		if artifact.Kind == android.ArtifactKindTestBinary {
+			if doc.Platform != android.PlatformAndroid {
+				return fmt.Errorf("artifact[%d].kind %s is only valid for platform android", i, android.ArtifactKindTestBinary)
 			}
 			rel := artifact.Metadata["install_relative_path"]
 			if rel == "" {
-				return fmt.Errorf("artifact[%d].metadata.install_relative_path must not be empty for %s", i, contract.ArtifactKindTestBinary)
+				return fmt.Errorf("artifact[%d].metadata.install_relative_path must not be empty for %s", i, android.ArtifactKindTestBinary)
 			}
 			if err := validateInstallRelativePath(rel); err != nil {
 				return fmt.Errorf("artifact[%d].metadata.install_relative_path: %w", i, err)
 			}
 		}
-		if artifact.Kind == contract.ArtifactKindPackageEntry {
+		if artifact.Kind == android.ArtifactKindPackageEntry {
 			if err := validatePackageEntryMetadata(i, artifact); err != nil {
 				return err
 			}
@@ -174,7 +174,7 @@ func validateInstallRelativePath(rel string) error {
 
 func isProviderDerivedKind(kind string) bool {
 	switch kind {
-	case contract.ArtifactKindPrefixArchive, contract.ArtifactKindPackageIndex, contract.ArtifactKindTermuxDeb, contract.ArtifactKindTestBinary, contract.ArtifactKindPackageEntry:
+	case android.ArtifactKindPrefixArchive, android.ArtifactKindPackageIndex, android.ArtifactKindTermuxDeb, android.ArtifactKindTestBinary, android.ArtifactKindPackageEntry:
 		return true
 	default:
 		return false
@@ -201,7 +201,7 @@ func validatePackageEntryMetadata(index int, artifact Artifact) error {
 	switch visibility {
 	case "public", "private":
 	default:
-		return fmt.Errorf("artifact[%d].metadata.visibility must be public or private for %s", index, contract.ArtifactKindPackageEntry)
+		return fmt.Errorf("artifact[%d].metadata.visibility must be public or private for %s", index, android.ArtifactKindPackageEntry)
 	}
 
 	strategy := artifact.Metadata["install_strategy"]
@@ -217,12 +217,12 @@ func validatePackageEntryMetadata(index int, artifact Artifact) error {
 		if artifact.Metadata["source_index_ref"] == "" {
 			return fmt.Errorf("artifact[%d].metadata.source_index_ref must not be empty for termux-package package entry", index)
 		}
-	case contract.ArtifactKindTestBinary:
+	case android.ArtifactKindTestBinary:
 		if artifact.Metadata["artifact_ref"] == "" {
-			return fmt.Errorf("artifact[%d].metadata.artifact_ref must not be empty for %s package entry", index, contract.ArtifactKindTestBinary)
+			return fmt.Errorf("artifact[%d].metadata.artifact_ref must not be empty for %s package entry", index, android.ArtifactKindTestBinary)
 		}
 	default:
-		return fmt.Errorf("artifact[%d].metadata.install_strategy %q is unsupported for %s", index, strategy, contract.ArtifactKindPackageEntry)
+		return fmt.Errorf("artifact[%d].metadata.install_strategy %q is unsupported for %s", index, strategy, android.ArtifactKindPackageEntry)
 	}
 	return nil
 }

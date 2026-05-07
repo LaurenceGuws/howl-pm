@@ -1,4 +1,4 @@
-package androidrepo
+package termux
 
 import (
 	"strings"

@@ -1,4 +1,4 @@
-package pm
+package userland
 
 import (
 	"archive/tar"
@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/howl/howl-pm/internal/androidprefix"
+	pkgprefix "github.com/howl/howl-pm/internal/prefix"
 )
 
 type extractStats struct {
@@ -18,9 +18,9 @@ type extractStats struct {
 	symlinks int
 }
 
-func ExtractUSRToPrefix(archivePath string, prefix string) (extractStats, error) {
-	prefix = filepath.Clean(prefix)
-	if err := os.MkdirAll(prefix, 0o755); err != nil {
+func ExtractUSRToPrefix(archivePath string, prefixRoot string) (extractStats, error) {
+	prefixRoot = filepath.Clean(prefixRoot)
+	if err := os.MkdirAll(prefixRoot, 0o755); err != nil {
 		return extractStats{}, err
 	}
 	file, err := os.Open(archivePath)
@@ -48,7 +48,7 @@ func ExtractUSRToPrefix(archivePath string, prefix string) (extractStats, error)
 		if !ok || relative == "" {
 			continue
 		}
-		target, err := safeJoin(prefix, relative)
+		target, err := safeJoin(prefixRoot, relative)
 		if err != nil {
 			return stats, err
 		}
@@ -123,18 +123,18 @@ func safeJoin(root string, relative string) (string, error) {
 	return target, nil
 }
 
-func installDebIntoPrefix(debPath string, stagingRoot string, prefix string) (extractStats, error) {
+func installDebIntoPrefix(debPath string, stagingRoot string, prefixRoot string) (extractStats, error) {
 	if err := os.RemoveAll(stagingRoot); err != nil {
 		return extractStats{}, err
 	}
 	if err := os.MkdirAll(stagingRoot, 0o755); err != nil {
 		return extractStats{}, err
 	}
-	extracted, err := androidprefix.ExtractDebUSR(debPath, stagingRoot)
+	extracted, err := pkgprefix.ExtractDebUSR(debPath, stagingRoot)
 	if err != nil {
 		return extractStats{}, err
 	}
-	merged, err := mergeTree(filepath.Join(stagingRoot, "usr"), prefix)
+	merged, err := mergeTree(filepath.Join(stagingRoot, "usr"), prefixRoot)
 	if err != nil {
 		return extractStats{}, err
 	}
