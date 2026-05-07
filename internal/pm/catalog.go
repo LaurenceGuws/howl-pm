@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/howl/howl-pm/internal/contract"
 	"github.com/howl/howl-pm/internal/manifest"
 )
 
@@ -36,7 +37,7 @@ type PackageEntry struct {
 func PackageCatalog(source Source) []PackageEntry {
 	entries := make([]PackageEntry, 0, len(source.Document.Artifacts))
 	for _, artifact := range source.Document.Artifacts {
-		if artifact.Kind != "howl-package-entry" {
+		if artifact.Kind != contract.ArtifactKindPackageEntry {
 			continue
 		}
 		entries = append(entries, packageEntryFromArtifact(artifact))

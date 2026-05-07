@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/howl/howl-pm/internal/contract"
 	"github.com/howl/howl-pm/internal/manifest"
 )
 
@@ -14,6 +15,7 @@ const (
 	catalogSmokeSourceRel  = "assets/howl-android-catalog-smoke.sh"
 	catalogSmokeDistName   = "howl-android-catalog-smoke.sh"
 	catalogSmokeArtifactID = "howl-android-catalog-smoke"
+	pinnedIndexDistName    = contract.IndexArtifactName
 )
 
 func moduleRootDir() (string, error) {
@@ -59,28 +61,29 @@ func materializeCatalogSmoke(distDir string) (sha256hex string, size int64, dist
 	return hex.EncodeToString(sum[:]), int64(len(payload)), distPath, nil
 }
 
-func applyAndroidDevReleaseEdits(doc manifest.Document, archiveAssetBaseName, smokeHash string, smokeSize int64) (manifest.Document, error) {
+func applyAndroidDevReleaseEdits(doc manifest.Document, archiveAssetBaseName, indexAssetBaseName, smokeHash string, smokeSize int64) (manifest.Document, error) {
 	for i := range doc.Artifacts {
-		if doc.Artifacts[i].Kind == "android-prefix-archive" {
+		if doc.Artifacts[i].Kind == contract.ArtifactKindPrefixArchive {
 			doc.Artifacts[i].URL = archiveAssetBaseName
+		}
+		if doc.Artifacts[i].Kind == contract.ArtifactKindPackageIndex {
+			doc.Artifacts[i].URL = indexAssetBaseName
 		}
 	}
 	version := "sha256-" + smokeHash[:12]
 	doc.Artifacts = append(doc.Artifacts, manifest.Artifact{
 		Name:    catalogSmokeArtifactID,
-		Kind:    "android-test-binary",
+		Kind:    contract.ArtifactKindTestBinary,
 		Version: version,
 		URL:     catalogSmokeDistName,
 		SHA256:  smokeHash,
 		Size:    smokeSize,
-		Metadata: map[string]string{
-			"provider":                "termux-main",
-			"provider_role":           "android-dev-bootstrap",
-			"provider_platform":       "android",
-			"provider_architecture":   "aarch64",
-			"install_relative_path":   "libexec/howl-pm/howl-android-catalog-smoke.sh",
-			"unix_mode":               "0755",
-		},
+		Metadata: func() map[string]string {
+			metadata := contract.ProviderMetadata(contract.ProviderRoleDevBootstrap)
+			metadata["install_relative_path"] = "libexec/howl-pm/howl-android-catalog-smoke.sh"
+			metadata["unix_mode"] = "0755"
+			return metadata
+		}(),
 		Limitations: []string{
 			"Development snapshot payload for howl-pm android-test-binary pull/install validation only.",
 		},
@@ -95,7 +98,43 @@ func applyAndroidDevReleaseEdits(doc manifest.Document, archiveAssetBaseName, sm
 	return doc, nil
 }
 
-func writeAndroidDevReleaseManifest(prefixManifestPath, releaseManifestPath, archiveAssetBaseName string) error {
+func materializePinnedIndex(distDir, prefixManifestPath, indexPath string) (string, string, error) {
+	doc, err := manifest.Load(prefixManifestPath)
+	if err != nil {
+		return "", "", err
+	}
+	if err := doc.Validate(); err != nil {
+		return "", "", err
+	}
+	var indexArtifact *manifest.Artifact
+	for i := range doc.Artifacts {
+		if doc.Artifacts[i].Kind == contract.ArtifactKindPackageIndex {
+			indexArtifact = &doc.Artifacts[i]
+			break
+		}
+	}
+	if indexArtifact == nil {
+		return "", "", fmt.Errorf("release manifest source missing %s artifact", contract.ArtifactKindPackageIndex)
+	}
+	indexBytes, err := os.ReadFile(filepath.Clean(indexPath))
+	if err != nil {
+		return "", "", err
+	}
+	if int64(len(indexBytes)) != indexArtifact.Size {
+		return "", "", fmt.Errorf("index artifact size mismatch for %s", indexArtifact.Name)
+	}
+	sum := sha256.Sum256(indexBytes)
+	if got := hex.EncodeToString(sum[:]); got != indexArtifact.SHA256 {
+		return "", "", fmt.Errorf("index artifact sha256 mismatch for %s", indexArtifact.Name)
+	}
+	distPath := filepath.Join(distDir, pinnedIndexDistName)
+	if err := os.WriteFile(distPath, indexBytes, 0o644); err != nil {
+		return "", "", err
+	}
+	return pinnedIndexDistName, distPath, nil
+}
+
+func writeAndroidDevReleaseManifest(prefixManifestPath, releaseManifestPath, archiveAssetBaseName, indexAssetBaseName string) error {
 	hash, size, _, err := materializeCatalogSmoke(filepath.Dir(releaseManifestPath))
 	if err != nil {
 		return err
@@ -107,7 +146,7 @@ func writeAndroidDevReleaseManifest(prefixManifestPath, releaseManifestPath, arc
 	if err := doc.Validate(); err != nil {
 		return err
 	}
-	doc, err = applyAndroidDevReleaseEdits(doc, archiveAssetBaseName, hash, size)
+	doc, err = applyAndroidDevReleaseEdits(doc, archiveAssetBaseName, indexAssetBaseName, hash, size)
 	if err != nil {
 		return err
 	}

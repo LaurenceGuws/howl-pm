@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/howl/howl-pm/internal/contract"
 )
 
 const SchemaVersion = 1
@@ -32,7 +34,7 @@ type Artifact struct {
 }
 
 func NewSkeleton(platform string, channel string) (Document, error) {
-	if platform != "android" && platform != "ios" {
+	if platform != contract.PlatformAndroid && platform != contract.PlatformIOS {
 		return Document{}, fmt.Errorf("unsupported platform %q", platform)
 	}
 	if channel == "" {
@@ -41,7 +43,7 @@ func NewSkeleton(platform string, channel string) (Document, error) {
 
 	doc := Document{
 		SchemaVersion: SchemaVersion,
-		Project:       "howl-pm",
+		Project:       contract.ProjectName,
 		Platform:      platform,
 		Channel:       channel,
 		Artifacts:     []Artifact{},
@@ -51,22 +53,14 @@ func NewSkeleton(platform string, channel string) (Document, error) {
 		},
 	}
 
-	if platform == "android" {
+	if platform == contract.PlatformAndroid {
 		doc.Artifacts = append(doc.Artifacts, Artifact{
-			Name:    "howl-android-userland-bootstrap",
-			Kind:    "android-prefix-archive",
-			Version: "0.0.0-dev",
-			URL:     "TODO",
-			SHA256:  "TODO",
-			Metadata: map[string]string{
-				"package_name":          "howl.term",
-				"prefix":                "/data/data/howl.term/files/usr",
-				"target_sdk":            "28",
-				"provider":              "termux-main",
-				"provider_role":         "android-dev-bootstrap",
-				"provider_platform":     "android",
-				"provider_architecture": "aarch64",
-			},
+			Name:     "howl-android-userland-bootstrap",
+			Kind:     contract.ArtifactKindPrefixArchive,
+			Version:  "0.0.0-dev",
+			URL:      "TODO",
+			SHA256:   "TODO",
+			Metadata: contract.AndroidPrefixMetadata(contract.ProviderRoleDevBootstrap),
 			Limitations: []string{
 				"Development skeleton. Not a signed product channel.",
 				"Must not point at unmodified com.termux-rooted package payloads.",
@@ -74,10 +68,10 @@ func NewSkeleton(platform string, channel string) (Document, error) {
 		})
 	}
 
-	if platform == "ios" {
+	if platform == contract.PlatformIOS {
 		doc.Artifacts = append(doc.Artifacts, Artifact{
 			Name:    "howl-ios-tool-bundle",
-			Kind:    "ios-bundle-manifest",
+			Kind:    contract.ArtifactKindIOSBundle,
 			Version: "0.0.0-dev",
 			URL:     "TODO",
 			SHA256:  "TODO",
@@ -110,10 +104,10 @@ func (doc Document) Validate() error {
 	if doc.SchemaVersion != SchemaVersion {
 		return fmt.Errorf("unsupported schema_version %d", doc.SchemaVersion)
 	}
-	if doc.Project != "howl-pm" {
+	if doc.Project != contract.ProjectName {
 		return fmt.Errorf("unexpected project %q", doc.Project)
 	}
-	if doc.Platform != "android" && doc.Platform != "ios" {
+	if doc.Platform != contract.PlatformAndroid && doc.Platform != contract.PlatformIOS {
 		return fmt.Errorf("unsupported platform %q", doc.Platform)
 	}
 	if doc.Channel == "" {
@@ -138,19 +132,19 @@ func (doc Document) Validate() error {
 		if artifact.Size < 0 {
 			return fmt.Errorf("artifact[%d].size must be non-negative", i)
 		}
-		if artifact.Kind == "android-test-binary" {
-			if doc.Platform != "android" {
-				return fmt.Errorf("artifact[%d].kind android-test-binary is only valid for platform android", i)
+		if artifact.Kind == contract.ArtifactKindTestBinary {
+			if doc.Platform != contract.PlatformAndroid {
+				return fmt.Errorf("artifact[%d].kind %s is only valid for platform android", i, contract.ArtifactKindTestBinary)
 			}
 			rel := artifact.Metadata["install_relative_path"]
 			if rel == "" {
-				return fmt.Errorf("artifact[%d].metadata.install_relative_path must not be empty for android-test-binary", i)
+				return fmt.Errorf("artifact[%d].metadata.install_relative_path must not be empty for %s", i, contract.ArtifactKindTestBinary)
 			}
 			if err := validateInstallRelativePath(rel); err != nil {
 				return fmt.Errorf("artifact[%d].metadata.install_relative_path: %w", i, err)
 			}
 		}
-		if artifact.Kind == "howl-package-entry" {
+		if artifact.Kind == contract.ArtifactKindPackageEntry {
 			if err := validatePackageEntryMetadata(i, artifact); err != nil {
 				return err
 			}
@@ -180,7 +174,7 @@ func validateInstallRelativePath(rel string) error {
 
 func isProviderDerivedKind(kind string) bool {
 	switch kind {
-	case "android-prefix-archive", "android-termux-package-index", "android-termux-deb", "android-test-binary", "howl-package-entry":
+	case contract.ArtifactKindPrefixArchive, contract.ArtifactKindPackageIndex, contract.ArtifactKindTermuxDeb, contract.ArtifactKindTestBinary, contract.ArtifactKindPackageEntry:
 		return true
 	default:
 		return false
@@ -207,7 +201,7 @@ func validatePackageEntryMetadata(index int, artifact Artifact) error {
 	switch visibility {
 	case "public", "private":
 	default:
-		return fmt.Errorf("artifact[%d].metadata.visibility must be public or private for howl-package-entry", index)
+		return fmt.Errorf("artifact[%d].metadata.visibility must be public or private for %s", index, contract.ArtifactKindPackageEntry)
 	}
 
 	strategy := artifact.Metadata["install_strategy"]
@@ -223,12 +217,12 @@ func validatePackageEntryMetadata(index int, artifact Artifact) error {
 		if artifact.Metadata["source_index_ref"] == "" {
 			return fmt.Errorf("artifact[%d].metadata.source_index_ref must not be empty for termux-package package entry", index)
 		}
-	case "android-test-binary":
+	case contract.ArtifactKindTestBinary:
 		if artifact.Metadata["artifact_ref"] == "" {
-			return fmt.Errorf("artifact[%d].metadata.artifact_ref must not be empty for android-test-binary package entry", index)
+			return fmt.Errorf("artifact[%d].metadata.artifact_ref must not be empty for %s package entry", index, contract.ArtifactKindTestBinary)
 		}
 	default:
-		return fmt.Errorf("artifact[%d].metadata.install_strategy %q is unsupported for howl-package-entry", index, strategy)
+		return fmt.Errorf("artifact[%d].metadata.install_strategy %q is unsupported for %s", index, strategy, contract.ArtifactKindPackageEntry)
 	}
 	return nil
 }

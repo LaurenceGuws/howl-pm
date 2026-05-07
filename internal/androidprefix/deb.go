@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/howl/howl-pm/internal/contract"
 	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
 )
@@ -19,8 +20,8 @@ import (
 const (
 	TermuxUSRPrefix = "data/data/com.termux/files/usr/"
 	AppUSRPrefix    = "usr/"
-	AppPackageName  = "howl.term"
-	AppUSRPath      = "/data/data/" + AppPackageName + "/files/usr"
+	AppPackageName  = contract.AndroidPackageName
+	AppUSRPath      = contract.AndroidPrefixPath
 	// BinaryUSRBridgePath replaces "/data/data/com.termux/files/usr" in non-text
 	// payloads (variable-length bytes.ReplaceAll). It must live under the app
 	// package directory so Android consumers can materialize it without a
